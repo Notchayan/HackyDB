@@ -6,6 +6,7 @@ int main() {
     std::cout << "Welcome to HackyDB!" << std::endl;
     std::cout << "A lightweight database system developed" << std::endl;
     std::cout << "by Team HACKY" << std::endl;
+    std::cout << "deadline for the project is : 24/04/2025" << std::endl;
     std::cout << std::endl;
 
     // Print team member names

@@ -1,33 +1,28 @@
-# Compiler settings
+# Compiler
 CXX = g++
-CXXFLAGS = -Wall -std=c++11
+CXXFLAGS = -Wall -std=c++17
 
-# Target executable name
-TARGET = program
+# Targets
+TARGETS = server client
 
-# Source files
-SOURCES = main.cpp
+# Build rules
+all: $(TARGETS)
 
-# Object files
-OBJECTS = $(SOURCES:.cpp=.o)
+server: server.cpp
+	$(CXX) $(CXXFLAGS) server.cpp -o server
 
-# Default target
-all: $(TARGET)
+client: client.cpp
+	$(CXX) $(CXXFLAGS) client.cpp -o client
 
-# Link object files to create executable
-$(TARGET): $(OBJECTS)
-	$(CXX) $(OBJECTS) -o $(TARGET)
-
-# Compile source files to object files
-%.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-# Clean up
+# Clean rule
 clean:
-	rm -f $(OBJECTS) $(TARGET)
+	rm -f $(TARGETS)
 
-# Run the program
-run: $(TARGET)
-	./$(TARGET)
+# Run server
+run-server: server
+	./server
 
-.PHONY: all clean run
+# Run client
+run-client: client
+	./client
+
