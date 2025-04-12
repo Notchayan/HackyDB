@@ -5,7 +5,7 @@
 *.out
 *.exe
 
-# C++ debugging files
+# C++ debugging files 
 *.gch
 *.dSYM/
 
@@ -32,3 +32,6 @@
 # System files
 .DS_Store
 Thumbs.db
+
+
+program
