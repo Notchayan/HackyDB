@@ -33,7 +33,7 @@ void mapPage(const std::string& table_name, int logical_page_number, int physica
     page_directory[table_name][logical_page_number] = physical_page_id;
 }
 
-int next_physical_page_id = 0; // initialize this in constructor
+int next_physical_page_id = 0; 
 
 int allocatePage(const std::string& table_name, int logical_page_number) {
     int physical_page_id = next_physical_page_id++;
