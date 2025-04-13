@@ -12,8 +12,8 @@
 #include <unistd.h>             // for read(), write(), close()
 #include <errno.h>              // for errno
 #include <cstring>              // for strerror
-#include "log_manager.hpp"
-#include "constants.hpp"
+#include "../Log_manager/log_manager.hpp"
+#include "../constants.hpp"
 
 int next_page_id = 0;
 int disk_fd = -1; 
@@ -22,7 +22,7 @@ std::unordered_map<std::string, std::unordered_map<int, int>> page_directory;
 struct Page {
     int page_id = -1;
     bool is_dirty = false;
-    int pin_count = 0; // Prevent eviction if > 0
+    int pin_count = 0; 
     char data[PAGE_SIZE];
 
     Page() {
@@ -206,7 +206,7 @@ int main() {
     BufferPoolManager bpm(3); 
     std::string table_name = "test_table";
     int logical_page_number = 0;
-    int physical_page_id = allocatePage(table_name, logical_page_number);
+    int physical_page_id = allocatePage(table_name, logical_page_number++);
     mapPage(table_name, logical_page_number, physical_page_id);
     std::cout << "Allocated page ID: " << physical_page_id << "\n";
     std::cout << "Mapped logical page number " << logical_page_number << " to physical page ID " << physical_page_id << "\n";
@@ -216,17 +216,17 @@ int main() {
     strcpy(p1->data, "Hello Page 0");
     bpm.unpinPage(0, true);
 
-    physical_page_id = allocatePage(table_name, logical_page_number);
+    physical_page_id = allocatePage(table_name, logical_page_number++);
     Page* p2 = bpm.fetchPage(physical_page_id);
     strcpy(p2->data, "Hello Page 1");
     bpm.unpinPage(1, true);
 
-    physical_page_id = allocatePage(table_name, logical_page_number);
+    physical_page_id = allocatePage(table_name, logical_page_number++);
     Page* p3 = bpm.fetchPage(physical_page_id);
     strcpy(p3->data, "Hello Page 2");
     bpm.unpinPage(2, true);
 
-    physical_page_id = allocatePage(table_name, logical_page_number);
+    physical_page_id = allocatePage(table_name, logical_page_number++);
     Page* p4 = bpm.fetchPage(physical_page_id);
     strcpy(p4->data, "Evicted someone!");
     bpm.unpinPage(3, true);
