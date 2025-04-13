@@ -183,26 +183,29 @@ public:
 int main() {
     BufferPoolManager bpm(3); 
 
-    Page* p1 = bpm.fetchPage(0);
+    int pid = allocatePage();
+    Page* p1 = bpm.fetchPage(pid);
     strcpy(p1->data, "Hello Page 0");
     bpm.unpinPage(0, true);
 
-    Page* p2 = bpm.fetchPage(1);
+    pid = allocatePage();
+    Page* p2 = bpm.fetchPage(pid);
     strcpy(p2->data, "Hello Page 1");
     bpm.unpinPage(1, true);
 
-    Page* p3 = bpm.fetchPage(2);
+    pid = allocatePage();
+    Page* p3 = bpm.fetchPage(pid);
     strcpy(p3->data, "Hello Page 2");
     bpm.unpinPage(2, true);
 
-    Page* p4 = bpm.fetchPage(3);
+    pid = allocatePage();
+    Page* p4 = bpm.fetchPage(pid);
     strcpy(p4->data, "Evicted someone!");
     bpm.unpinPage(3, true);
 
     Page* p5 = bpm.fetchPage(0); 
     std::cout << "Page 0 data: " << p5->data << "\n"; 
     bpm.unpinPage(0, false);
-
 
     Page* p6 = bpm.fetchPage(1);
     std::cout << "Page 1 data: " << p6->data << "\n";
