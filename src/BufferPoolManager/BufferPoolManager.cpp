@@ -185,6 +185,18 @@ public:
             writePageToDisk(page_id, page->data);
         page->is_dirty = false;
     }
+
+    void flushAllPages() {
+        for (auto& [pid, page] : page_table) {
+            flushPage(pid);
+        }
+    }
+
+    void shutdown() {
+        flushAllPages();
+        closeDiskFile();
+    }
+    
 };
 
 
@@ -229,6 +241,8 @@ int main() {
     Page* p7 = bpm.fetchPage(3);
     std::cout << "Page 3 data: " << p7->data << "\n";
     bpm.unpinPage(3, false);
+
+    bpm.shutdown();
 
     return 0;
 }
