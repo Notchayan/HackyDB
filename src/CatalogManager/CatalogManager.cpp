@@ -164,3 +164,7 @@ void CatalogManager::saveIndexes() {
 
     out << j.dump(4);
 }
+
+std::unordered_map<std::string, TableMetadata> CatalogManager::getAllTables() const {
+    return table_map;
+}

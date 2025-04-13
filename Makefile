@@ -5,6 +5,7 @@ TARGET = BufferPoolManagerTest
 SRC = \
 	src/BufferPoolManager/BufferPoolManager.cpp \
 	src/TableHeap/TableHeap.cpp \
+	src/CatalogManager/CatalogManager.cpp \
 	src/main.cpp
 
 OBJ = $(SRC:src/%.cpp=build/%.o)

@@ -1,9 +1,8 @@
-#ifndef CATALOG_MANAGER_HPP
-#define CATALOG_MANAGER_HPP
+#pragma once
 
 #include <string>
-#include <unordered_map>
 #include <vector>
+#include <unordered_map>
 #include <optional>
 
 struct TableMetadata {
@@ -42,23 +41,22 @@ public:
     bool addColumnMetadata(const ColumnMetadata& column);
     bool addIndexMetadata(const IndexMetadata& index);
 
-    std::optional<TableMetadata> getTableMetadata(const std::string& table_name);
+    std::optional<TableMetadata> getTableMetadata(const std::string& name);
     std::vector<ColumnMetadata> getColumnMetadata(const std::string& table_name);
-    std::optional<IndexMetadata> getIndexMetadata(const std::string& index_name);
+    std::optional<IndexMetadata> getIndexMetadata(const std::string& name);
+
+    std::unordered_map<std::string, TableMetadata> getAllTables() const;
 
 private:
+    void loadTables();
+    void loadColumns();
+    void loadIndexes();
+
+    void saveTables();
+    void saveColumns();
+    void saveIndexes();
+
     std::unordered_map<std::string, TableMetadata> table_map;
     std::unordered_map<std::string, std::vector<ColumnMetadata>> column_map;
     std::unordered_map<std::string, IndexMetadata> index_map;
-
-    void loadTables();
-    void saveTables();
-
-    void loadColumns();
-    void saveColumns();
-
-    void loadIndexes();
-    void saveIndexes();
 };
-
-#endif // CATALOG_MANAGER_HPP
