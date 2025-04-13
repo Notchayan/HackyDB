@@ -14,6 +14,8 @@
 #include <cstring>              // for strerror
 
 const int PAGE_SIZE = 4096;
+int next_page_id = 0;
+int disk_fd = -1; 
 
 struct Page {
     int page_id = -1;
@@ -25,6 +27,10 @@ struct Page {
         memset(data, 0, PAGE_SIZE);
     }
 };
+
+int allocatePage() {
+    return next_page_id++;
+}
 
 class LRUReplacer {
     std::list<int> lru_list;
@@ -54,8 +60,6 @@ public:
         return true;
     }
 };
-
-int disk_fd = -1; // File descriptor
 
 void openDiskFile() {
     disk_fd = open("dbfile", O_RDWR | O_CREAT, 0644);
@@ -96,7 +100,6 @@ void writePageToDisk(int page_id, char* data) {
         std::cerr << "write failed: " << strerror(errno) << "\n";
     }
 }
-
 
 class BufferPoolManager {
     int pool_size;
@@ -178,7 +181,7 @@ public:
 
 
 int main() {
-    BufferPoolManager bpm(3); // 3-page buffer pool
+    BufferPoolManager bpm(3); 
 
     Page* p1 = bpm.fetchPage(0);
     strcpy(p1->data, "Hello Page 0");
@@ -192,10 +195,22 @@ int main() {
     strcpy(p3->data, "Hello Page 2");
     bpm.unpinPage(2, true);
 
-    // This will cause eviction
     Page* p4 = bpm.fetchPage(3);
     strcpy(p4->data, "Evicted someone!");
     bpm.unpinPage(3, true);
+
+    Page* p5 = bpm.fetchPage(0); 
+    std::cout << "Page 0 data: " << p5->data << "\n"; 
+    bpm.unpinPage(0, false);
+
+
+    Page* p6 = bpm.fetchPage(1);
+    std::cout << "Page 1 data: " << p6->data << "\n";
+    bpm.unpinPage(1, false);
+
+    Page* p7 = bpm.fetchPage(3);
+    std::cout << "Page 3 data: " << p7->data << "\n";
+    bpm.unpinPage(3, false);
 
     return 0;
 }
