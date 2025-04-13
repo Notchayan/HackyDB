@@ -16,6 +16,7 @@
 const int PAGE_SIZE = 4096;
 int next_page_id = 0;
 int disk_fd = -1; 
+std::unordered_map<std::string, std::unordered_map<int, int>> page_directory;
 
 struct Page {
     int page_id = -1;
@@ -28,8 +29,16 @@ struct Page {
     }
 };
 
-int allocatePage() {
-    return next_page_id++;
+void mapPage(const std::string& table_name, int logical_page_number, int physical_page_id) {
+    page_directory[table_name][logical_page_number] = physical_page_id;
+}
+
+int next_physical_page_id = 0; // initialize this in constructor
+
+int allocatePage(const std::string& table_name, int logical_page_number) {
+    int physical_page_id = next_physical_page_id++;
+    page_directory[table_name][logical_page_number] = physical_page_id;
+    return physical_page_id;
 }
 
 class LRUReplacer {
@@ -182,24 +191,30 @@ public:
 
 int main() {
     BufferPoolManager bpm(3); 
+    std::string table_name = "test_table";
+    int logical_page_number = 0;
+    int physical_page_id = allocatePage(table_name, logical_page_number);
+    mapPage(table_name, logical_page_number, physical_page_id);
+    std::cout << "Allocated page ID: " << physical_page_id << "\n";
+    std::cout << "Mapped logical page number " << logical_page_number << " to physical page ID " << physical_page_id << "\n";
+    std::cout << "Page directory: \n";
 
-    int pid = allocatePage();
-    Page* p1 = bpm.fetchPage(pid);
+    Page* p1 = bpm.fetchPage(physical_page_id);
     strcpy(p1->data, "Hello Page 0");
     bpm.unpinPage(0, true);
 
-    pid = allocatePage();
-    Page* p2 = bpm.fetchPage(pid);
+    physical_page_id = allocatePage(table_name, logical_page_number);
+    Page* p2 = bpm.fetchPage(physical_page_id);
     strcpy(p2->data, "Hello Page 1");
     bpm.unpinPage(1, true);
 
-    pid = allocatePage();
-    Page* p3 = bpm.fetchPage(pid);
+    physical_page_id = allocatePage(table_name, logical_page_number);
+    Page* p3 = bpm.fetchPage(physical_page_id);
     strcpy(p3->data, "Hello Page 2");
     bpm.unpinPage(2, true);
 
-    pid = allocatePage();
-    Page* p4 = bpm.fetchPage(pid);
+    physical_page_id = allocatePage(table_name, logical_page_number);
+    Page* p4 = bpm.fetchPage(physical_page_id);
     strcpy(p4->data, "Evicted someone!");
     bpm.unpinPage(3, true);
 
