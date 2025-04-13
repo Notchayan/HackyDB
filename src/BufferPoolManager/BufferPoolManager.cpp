@@ -19,58 +19,6 @@ int next_page_id = 0;
 int disk_fd = -1; 
 std::unordered_map<std::string, std::unordered_map<int, int>> page_directory;
 
-struct Page {
-    int page_id = -1;
-    bool is_dirty = false;
-    int pin_count = 0; 
-    char data[PAGE_SIZE];
-
-    Page() {
-        memset(data, 0, PAGE_SIZE);
-    }
-};
-
-void mapPage(const std::string& table_name, int logical_page_number, int physical_page_id) {
-    page_directory[table_name][logical_page_number] = physical_page_id;
-}
-
-int next_physical_page_id = 0; 
-
-int allocatePage(const std::string& table_name, int logical_page_number) {
-    int physical_page_id = next_physical_page_id++;
-    page_directory[table_name][logical_page_number] = physical_page_id;
-    return physical_page_id;
-}
-
-class LRUReplacer {
-    std::list<int> lru_list;
-    std::unordered_map<int, std::list<int>::iterator> map;
-
-public:
-    void insert(int page_id) {
-        if (map.count(page_id)) {
-            lru_list.erase(map[page_id]);
-        }
-        lru_list.push_front(page_id);
-        map[page_id] = lru_list.begin();
-    }
-
-    void erase(int page_id) {
-        if (map.count(page_id)) {
-            lru_list.erase(map[page_id]);
-            map.erase(page_id);
-        }
-    }
-
-    bool victim(int &page_id) {
-        if (lru_list.empty()) return false;
-        page_id = lru_list.back();
-        lru_list.pop_back();
-        map.erase(page_id);
-        return true;
-    }
-};
-
 void openDiskFile() {
     disk_fd = open("dbfile", O_RDWR | O_CREAT, 0644);
     if (disk_fd < 0) {
@@ -110,6 +58,66 @@ void writePageToDisk(int page_id, char* data) {
         std::cerr << "write failed: " << strerror(errno) << "\n";
     }
 }
+
+struct Page {
+    int page_id = -1;
+    bool is_dirty = false;
+    int pin_count = 0; 
+    char data[PAGE_SIZE];
+
+    Page() {
+        memset(data, 0, PAGE_SIZE);
+    }
+};
+
+void mapPage(const std::string& table_name, int logical_page_number, int physical_page_id) {
+    page_directory[table_name][logical_page_number] = physical_page_id;
+}
+
+int next_physical_page_id = 0; 
+
+int allocatePage(const std::string& table_name, int logical_page_number) {
+    int physical_page_id = next_physical_page_id++;
+    page_directory[table_name][logical_page_number] = physical_page_id;
+
+    char empty_data[PAGE_SIZE];
+    memset(empty_data, 0, PAGE_SIZE);
+
+    writePageToDisk(physical_page_id, empty_data);
+
+    return physical_page_id;
+}
+
+
+class LRUReplacer {
+    std::list<int> lru_list;
+    std::unordered_map<int, std::list<int>::iterator> map;
+
+public:
+    void insert(int page_id) {
+        if (map.count(page_id)) {
+            lru_list.erase(map[page_id]);
+        }
+        lru_list.push_front(page_id);
+        map[page_id] = lru_list.begin();
+    }
+
+    void erase(int page_id) {
+        if (map.count(page_id)) {
+            lru_list.erase(map[page_id]);
+            map.erase(page_id);
+        }
+    }
+
+    bool victim(int &page_id) {
+        if (lru_list.empty()) return false;
+        page_id = lru_list.back();
+        lru_list.pop_back();
+        map.erase(page_id);
+        return true;
+    }
+};
+
 
 class BufferPoolManager {
     int pool_size;
@@ -170,6 +178,18 @@ public:
         return frame;
     }
 
+    Page* fetchPage(const std::string& table_name, int logical_page_number) {
+        if (!page_directory.count(table_name) || !page_directory[table_name].count(logical_page_number)) {
+            std::cerr << "Page not found in page_directory for table " << table_name 
+                      << ", logical page " << logical_page_number << "\n";
+            return nullptr;
+        }
+    
+        int physical_page_id = page_directory[table_name][logical_page_number];
+        return fetchPage(physical_page_id); // call the existing one
+    }
+
+    
     void unpinPage(int page_id, bool is_dirty) {
         if (!page_table.count(page_id)) return;
         Page* page = page_table[page_id];
@@ -200,51 +220,32 @@ public:
     
 };
 
-
-
 int main() {
-    BufferPoolManager bpm(3); 
+    BufferPoolManager bpm(3);
     std::string table_name = "test_table";
-    int logical_page_number = 0;
-    int physical_page_id = allocatePage(table_name, logical_page_number++);
-    mapPage(table_name, logical_page_number, physical_page_id);
-    std::cout << "Allocated page ID: " << physical_page_id << "\n";
-    std::cout << "Mapped logical page number " << logical_page_number << " to physical page ID " << physical_page_id << "\n";
-    std::cout << "Page directory: \n";
 
-    Page* p1 = bpm.fetchPage(physical_page_id);
-    strcpy(p1->data, "Hello Page 0");
-    bpm.unpinPage(0, true);
+    for (int logical_page_number = 0; logical_page_number < 3; ++logical_page_number) {
+        allocatePage(table_name, logical_page_number); 
 
-    physical_page_id = allocatePage(table_name, logical_page_number++);
-    Page* p2 = bpm.fetchPage(physical_page_id);
-    strcpy(p2->data, "Hello Page 1");
-    bpm.unpinPage(1, true);
+        Page* page = bpm.fetchPage(table_name, logical_page_number); 
+        std::string content = "Hello Page " + std::to_string(logical_page_number);
+        strcpy(page->data, content.c_str());
+        bpm.unpinPage(page->page_id, true); 
+    }
 
-    physical_page_id = allocatePage(table_name, logical_page_number++);
-    Page* p3 = bpm.fetchPage(physical_page_id);
-    strcpy(p3->data, "Hello Page 2");
-    bpm.unpinPage(2, true);
+    int logical_page_number = 3;
+    allocatePage(table_name, logical_page_number);
 
-    physical_page_id = allocatePage(table_name, logical_page_number++);
-    Page* p4 = bpm.fetchPage(physical_page_id);
-    strcpy(p4->data, "Evicted someone!");
-    bpm.unpinPage(3, true);
+    Page* evicted_page = bpm.fetchPage(table_name, logical_page_number); 
+    strcpy(evicted_page->data, "Evicted someone!");
+    bpm.unpinPage(evicted_page->page_id, true); 
 
-    Page* p5 = bpm.fetchPage(0); 
-    std::cout << "Page 0 data: " << p5->data << "\n"; 
-    bpm.unpinPage(0, false);
-
-    Page* p6 = bpm.fetchPage(1);
-    std::cout << "Page 1 data: " << p6->data << "\n";
-    bpm.unpinPage(1, false);
-
-    Page* p7 = bpm.fetchPage(3);
-    std::cout << "Page 3 data: " << p7->data << "\n";
-    bpm.unpinPage(3, false);
+    for (int i = 0; i <= logical_page_number; ++i) {
+        Page* page = bpm.fetchPage(table_name, i);
+        std::cout << "Page " << i << " data: " << page->data << "\n";
+        bpm.unpinPage(page->page_id, false); 
+    }
 
     bpm.shutdown();
-
     return 0;
 }
-
