@@ -35,3 +35,6 @@ Thumbs.db
 
 
 program
+
+Makefile
+BufferPoolManager

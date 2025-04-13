@@ -8,6 +8,10 @@
 #include <mutex>                // for std::mutex
 #include <condition_variable>   // for std::condition_variable
 #include <queue>                // for std::queue (for disk scheduler requests)
+#include <fcntl.h>              // for open()
+#include <unistd.h>             // for read(), write(), close()
+#include <errno.h>              // for errno
+#include <cstring>              // for strerror
 
 const int PAGE_SIZE = 4096;
 
@@ -51,6 +55,49 @@ public:
     }
 };
 
+int disk_fd = -1; // File descriptor
+
+void openDiskFile() {
+    disk_fd = open("dbfile", O_RDWR | O_CREAT, 0644);
+    if (disk_fd < 0) {
+        std::cerr << "Failed to open disk file: " << strerror(errno) << "\n";
+        exit(1);
+    }
+}
+
+void closeDiskFile() {
+    if (disk_fd >= 0) close(disk_fd);
+}
+
+void readPageFromDisk(int page_id, char* data) {
+    off_t offset = page_id * PAGE_SIZE;
+    if (lseek(disk_fd, offset, SEEK_SET) == -1) {
+        std::cerr << "lseek failed in read: " << strerror(errno) << "\n";
+        return;
+    }
+
+    ssize_t bytes = read(disk_fd, data, PAGE_SIZE);
+    if (bytes < 0) {
+        std::cerr << "read failed: " << strerror(errno) << "\n";
+    } else if (bytes < PAGE_SIZE) {
+        memset(data + bytes, 0, PAGE_SIZE - bytes); // pad with zeros
+    }
+}
+
+void writePageToDisk(int page_id, char* data) {
+    off_t offset = page_id * PAGE_SIZE;
+    if (lseek(disk_fd, offset, SEEK_SET) == -1) {
+        std::cerr << "lseek failed in write: " << strerror(errno) << "\n";
+        return;
+    }
+
+    ssize_t bytes = write(disk_fd, data, PAGE_SIZE);
+    if (bytes < 0) {
+        std::cerr << "write failed: " << strerror(errno) << "\n";
+    }
+}
+
+
 class BufferPoolManager {
     int pool_size;
     std::unordered_map<int, Page*> page_table;
@@ -60,6 +107,7 @@ class BufferPoolManager {
 
 public:
     BufferPoolManager(int size): pool_size(size) {
+        openDiskFile(); 
         for (int i = 0; i < pool_size; ++i)
             pages.push_back(new Page());
     }
@@ -69,6 +117,7 @@ public:
             flushPage(page->page_id);
             delete page;
         }
+        closeDiskFile();
     }
 
     Page* fetchPage(int page_id) {
@@ -123,20 +172,6 @@ public:
         if (page->is_dirty)
             writePageToDisk(page_id, page->data);
         page->is_dirty = false;
-    }
-
-    void readPageFromDisk(int page_id, char* data) {
-        std::ifstream in("dbfile", std::ios::binary);
-        in.seekg(page_id * PAGE_SIZE);
-        in.read(data, PAGE_SIZE);
-        in.close();
-    }
-
-    void writePageToDisk(int page_id, char* data) {
-        std::ofstream out("dbfile", std::ios::binary | std::ios::in | std::ios::out);
-        out.seekp(page_id * PAGE_SIZE);
-        out.write(data, PAGE_SIZE);
-        out.close();
     }
 };
 
