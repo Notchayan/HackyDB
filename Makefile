@@ -1,23 +1,28 @@
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra
-TARGET = BufferPoolManager
+CXXFLAGS = -std=c++17 -Wall -Wextra -arch arm64
+TARGET = BufferPoolManagerTest
 
-SRC = src/BufferPoolManager/BufferPoolManager.cpp
-OBJ = build/BufferPoolManager.o
+SRC = \
+	src/BufferPoolManager/BufferPoolManager.cpp \
+	src/TableHeap/TableHeap.cpp \
+	src/main.cpp
+
+OBJ = $(SRC:src/%.cpp=build/%.o)
 
 all: $(TARGET)
 
 $(TARGET): $(OBJ)
-	$(CXX) $(OBJ) -o $(TARGET)
+	$(CXX) $(CXXFLAGS) $(OBJ) -o $(TARGET)
 
-$(OBJ): $(SRC)
-	@mkdir -p build
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+build/%.o: src/%.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) -c $< -o $@   
 
 run: $(TARGET)
+	chmod +x ./$(TARGET)
 	./$(TARGET)
-	
+
 clean:
 	rm -rf build $(TARGET)
 
-.PHONY: all clean
+.PHONY: all clean run
