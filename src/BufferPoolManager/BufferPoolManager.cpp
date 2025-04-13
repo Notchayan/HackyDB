@@ -19,6 +19,11 @@ int next_page_id = 0;
 int disk_fd = -1; 
 std::unordered_map<std::string, std::unordered_map<int, int>> page_directory;
 
+std::mutex page_directory_mutex;
+std::mutex physical_page_mutex;
+std::mutex disk_io_mutex;
+
+
 void openDiskFile() {
     disk_fd = open("dbfile", O_RDWR | O_CREAT, 0644);
     if (disk_fd < 0) {
@@ -77,6 +82,8 @@ void mapPage(const std::string& table_name, int logical_page_number, int physica
 int next_physical_page_id = 0; 
 
 int allocatePage(const std::string& table_name, int logical_page_number) {
+    std::lock_guard<std::mutex> pg_lock(physical_page_mutex);
+    std::lock_guard<std::mutex> dir_lock(page_directory_mutex);
     int physical_page_id = next_physical_page_id++;
     page_directory[table_name][logical_page_number] = physical_page_id;
 
@@ -93,8 +100,10 @@ class LRUReplacer {
     std::list<int> lru_list;
     std::unordered_map<int, std::list<int>::iterator> map;
 
+    std::mutex replacer_mutex;
 public:
     void insert(int page_id) {
+        std::lock_guard<std::mutex> lock(replacer_mutex);
         if (map.count(page_id)) {
             lru_list.erase(map[page_id]);
         }
@@ -103,6 +112,7 @@ public:
     }
 
     void erase(int page_id) {
+        std::lock_guard<std::mutex> lock(replacer_mutex);
         if (map.count(page_id)) {
             lru_list.erase(map[page_id]);
             map.erase(page_id);
@@ -110,6 +120,7 @@ public:
     }
 
     bool victim(int &page_id) {
+        std::lock_guard<std::mutex> lock(replacer_mutex);
         if (lru_list.empty()) return false;
         page_id = lru_list.back();
         lru_list.pop_back();
@@ -125,6 +136,10 @@ class BufferPoolManager {
     std::vector<Page*> pages;
     std::unordered_map<int, std::string> disk_file_map;
     LRUReplacer replacer;
+
+    std::mutex page_table_mutex;
+    std::mutex pages_mutex;
+    std::mutex fetch_mutex;
 
 public:
     BufferPoolManager(int size): pool_size(size) {
@@ -142,55 +157,78 @@ public:
     }
 
     Page* fetchPage(int page_id) {
-        if (page_table.count(page_id)) {
-            Page* page = page_table[page_id];
-            page->pin_count++;
-            replacer.erase(page_id);
-            return page;
+        std::lock_guard<std::mutex> lock(fetch_mutex);
+        {
+            std::lock_guard<std::mutex> lock(page_table_mutex);
+            if (page_table.count(page_id)) {
+                Page* page = page_table[page_id];
+                page->pin_count++;
+                replacer.erase(page_id);
+                return page;
+            }
         }
 
         int victim_id;
         Page* frame = nullptr;
 
         // Find empty frame or evict one
-        for (auto p : pages) {
-            if (p->page_id == -1) {
-                frame = p;
-                break;
+        {
+            std::lock_guard<std::mutex> lock(pages_mutex);
+            for (auto p : pages) {
+                if (p->page_id == -1) {
+                    frame = p;
+                    break;
+                }
             }
         }
+        
 
         if (!frame) {
             if (!replacer.victim(victim_id)) return nullptr;
-            frame = page_table[victim_id];
-            if (frame->is_dirty)
-                flushPage(victim_id);
-            page_table.erase(victim_id);
+            {
+                std::lock_guard<std::mutex> lock(page_table_mutex);
+                frame = page_table[victim_id];
+                if (frame->is_dirty){
+                    flushPage(victim_id);
+                }
+                page_table.erase(victim_id);
+            }
+            
         }
 
         // Load from disk
-        frame->page_id = page_id;
-        frame->pin_count = 1;
-        frame->is_dirty = false;
-        readPageFromDisk(page_id, frame->data);
-        page_table[page_id] = frame;
+        {
+            std::lock_guard<std::mutex> disk_lock(disk_io_mutex);
+            readPageFromDisk(page_id, frame->data);
+        }
 
+        {
+            std::lock_guard<std::mutex> lock(page_table_mutex);
+            frame->page_id = page_id;
+            frame->pin_count = 1;
+            frame->is_dirty = false;
+            page_table[page_id] = frame;
+        }
         return frame;
     }
 
     Page* fetchPage(const std::string& table_name, int logical_page_number) {
-        if (!page_directory.count(table_name) || !page_directory[table_name].count(logical_page_number)) {
-            std::cerr << "Page not found in page_directory for table " << table_name 
-                      << ", logical page " << logical_page_number << "\n";
-            return nullptr;
+        int physical_page_id;
+        {
+            std::lock_guard<std::mutex> lock(page_directory_mutex);
+            if (!page_directory.count(table_name) || !page_directory[table_name].count(logical_page_number)) {
+                std::cerr << "Page not found in page_directory for table " << table_name 
+                        << ", logical page " << logical_page_number << "\n";
+                return nullptr;
+            }
+            physical_page_id = page_directory[table_name][logical_page_number];
         }
-    
-        int physical_page_id = page_directory[table_name][logical_page_number];
         return fetchPage(physical_page_id); // call the existing one
     }
 
     
     void unpinPage(int page_id, bool is_dirty) {
+        std::lock_guard<std::mutex> lock(page_table_mutex);
         if (!page_table.count(page_id)) return;
         Page* page = page_table[page_id];
         if (page->pin_count > 0) page->pin_count--;
@@ -200,6 +238,8 @@ public:
     }
 
     void flushPage(int page_id) {
+        // std::lock_guard<std::mutex> lock(page_table_mutex); this was giving deadlock
+        std::lock_guard<std::mutex> disk_lock(disk_io_mutex);
         if (!page_table.count(page_id)) return;
         Page* page = page_table[page_id];
         if (page->is_dirty)
