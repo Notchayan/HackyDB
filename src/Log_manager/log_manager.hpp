@@ -3,8 +3,7 @@
 #include <iostream>
 #include <fcntl.h>
 #include <unistd.h>
-
-#define PAGE_SIZE 4096
+#include "constants.hpp"
 
 class LogManager {
     std::ofstream log_file;

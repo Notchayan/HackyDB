@@ -12,8 +12,9 @@
 #include <unistd.h>             // for read(), write(), close()
 #include <errno.h>              // for errno
 #include <cstring>              // for strerror
+#include "log_manager.hpp"
+#include "constants.hpp"
 
-const int PAGE_SIZE = 4096;
 int next_page_id = 0;
 int disk_fd = -1; 
 std::unordered_map<std::string, std::unordered_map<int, int>> page_directory;
