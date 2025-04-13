@@ -12,6 +12,7 @@ int main() {
     heap.insertRow("row 3, filling up.");
     heap.insertRow("row 4, maybe new page?");
 
+    
     auto all_rows = heap.scanAllRows();
     for (int i = 0; i < all_rows.size(); ++i) {
         std::cout << "Row " << i << ": " << all_rows[i] << "\n";
