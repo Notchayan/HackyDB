@@ -95,6 +95,32 @@ int allocatePage(const std::string& table_name, int logical_page_number) {
     return physical_page_id;
 }
 
+bool deletePage(const std::string& table_name, int logical_page_number) {
+    std::lock_guard<std::mutex> dir_lock(page_directory_mutex);
+    if (!page_directory.count(table_name) || 
+        !page_directory[table_name].count(logical_page_number)) {
+        return false;
+    }
+
+    int physical_page_id = page_directory[table_name][logical_page_number];
+    page_directory[table_name].erase(logical_page_number);
+    
+    {
+        std::lock_guard<std::mutex> pt_lock(page_table_mutex);
+        if (page_table.count(physical_page_id)) {
+            Page* page = page_table[physical_page_id];
+            if (page->pin_count > 0) return false; // can't delete pinned page
+            replacer.erase(physical_page_id);
+            page_table.erase(physical_page_id);
+            page->page_id = -1; // reset
+        }
+    }
+
+    char empty_data[PAGE_SIZE] = {0};
+    writePageToDisk(physical_page_id, empty_data); // overwrite on disk
+    return true;
+}
+
 
 class LRUReplacer {
     std::list<int> lru_list;
