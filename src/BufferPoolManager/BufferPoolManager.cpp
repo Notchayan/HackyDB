@@ -3,7 +3,6 @@
 #include <iostream>
 
 // Global variables
-int next_page_id = 0;
 int disk_fd = -1;
 int next_physical_page_id = 0;
 std::unordered_map<std::string, std::unordered_map<int, int>> page_directory;
@@ -12,21 +11,7 @@ std::mutex page_directory_mutex;
 std::mutex physical_page_mutex;
 std::mutex disk_io_mutex;
 
-// Global function definitions
-void openDiskFile() {
-    disk_fd = open("dbfile", O_RDWR | O_CREAT, 0644);
-    if (disk_fd < 0) {
-        std::cerr << "Failed to open disk file: " << strerror(errno) << "\n";
-        exit(1);
-    }
-}
 
-void closeDiskFile() {
-    if (disk_fd >= 0) {
-        close(disk_fd);
-        disk_fd = -1;
-    }
-}
 
 void readPageFromDisk(int page_id, char* data) {
     off_t offset = page_id * PAGE_SIZE;
@@ -43,6 +28,7 @@ void readPageFromDisk(int page_id, char* data) {
     }
 }
 
+
 void writePageToDisk(int page_id, char* data) {
     off_t offset = page_id * PAGE_SIZE;
     if (lseek(disk_fd, offset, SEEK_SET) == -1) {
@@ -55,6 +41,129 @@ void writePageToDisk(int page_id, char* data) {
         std::cerr << "write failed: " << strerror(errno) << "\n";
     }
 }
+
+void loadPageDirectory() {
+    std::lock_guard<std::mutex> lock(page_directory_mutex);
+
+    std::vector<char> buffer(PAGE_SIZE * (METADATA_PAGE_END - METADATA_PAGE_START + 1), 0);
+    size_t read_offset = 0;
+    int page = METADATA_PAGE_START;
+
+    while (read_offset < buffer.size() && page <= METADATA_PAGE_END) {
+        readPageFromDisk(page, &buffer[read_offset]);
+        read_offset += PAGE_SIZE;
+        page++;
+    }
+
+    page_directory.clear();
+    size_t offset = 0;
+
+    int num_tables = 0;
+    memcpy(&num_tables, &buffer[offset], sizeof(int));
+    offset += sizeof(int);
+
+    for (int t = 0; t < num_tables; ++t) {
+        int name_len = 0;
+        memcpy(&name_len, &buffer[offset], sizeof(int));
+        offset += sizeof(int);
+
+        std::string table(&buffer[offset], name_len);
+        offset += name_len;
+
+        int num_entries = 0;
+        memcpy(&num_entries, &buffer[offset], sizeof(int));
+        offset += sizeof(int);
+
+        for (int i = 0; i < num_entries; ++i) {
+            int logical, physical;
+            memcpy(&logical, &buffer[offset], sizeof(int));
+            offset += sizeof(int);
+            memcpy(&physical, &buffer[offset], sizeof(int));
+            offset += sizeof(int);
+            page_directory[table][logical] = physical;
+        }
+    }
+}
+
+
+void loadMetadata() {
+    char buffer[PAGE_SIZE];
+    readPageFromDisk(METADATA_PAGE_ID, buffer);
+    memcpy(&next_physical_page_id, buffer, sizeof(int));
+
+    loadPageDirectory();
+}
+
+void openDiskFile() {
+    disk_fd = open("dbfile", O_RDWR | O_CREAT, 0644);
+    if (disk_fd < 0) {
+        std::cerr << "Failed to open disk file: " << strerror(errno) << "\n";
+        exit(1);
+    }
+
+    loadMetadata();
+
+    if (next_physical_page_id < FIRST_DATA_PAGE_ID) {
+        next_physical_page_id = FIRST_DATA_PAGE_ID;
+    }
+}
+
+void savePageDirectory() {
+    std::lock_guard<std::mutex> lock(page_directory_mutex);
+
+    std::vector<char> buffer(PAGE_SIZE * (METADATA_PAGE_END - METADATA_PAGE_START + 1), 0);
+    size_t offset = 0;
+
+    int num_tables = page_directory.size();
+    memcpy(&buffer[offset], &num_tables, sizeof(int));
+    offset += sizeof(int);
+
+    for (const auto& [table, mapping] : page_directory) {
+        int table_name_len = table.size();
+        memcpy(&buffer[offset], &table_name_len, sizeof(int));
+        offset += sizeof(int);
+        memcpy(&buffer[offset], table.c_str(), table_name_len);
+        offset += table_name_len;
+
+        int num_entries = mapping.size();
+        memcpy(&buffer[offset], &num_entries, sizeof(int));
+        offset += sizeof(int);
+
+        for (const auto& [logical, physical] : mapping) {
+            memcpy(&buffer[offset], &logical, sizeof(int));
+            offset += sizeof(int);
+            memcpy(&buffer[offset], &physical, sizeof(int));
+            offset += sizeof(int);
+        }
+    }
+
+    int page = METADATA_PAGE_START;
+    size_t written = 0;
+    while (written < buffer.size() && page <= METADATA_PAGE_END) {
+        writePageToDisk(page, &buffer[written]);
+        written += PAGE_SIZE;
+        page++;
+    }
+}
+
+
+void saveMetadata() {
+    char buffer[PAGE_SIZE];
+    memset(buffer, 0, PAGE_SIZE);
+    memcpy(buffer, &next_physical_page_id, sizeof(int));
+    writePageToDisk(METADATA_PAGE_ID, buffer);
+
+    savePageDirectory();
+}
+
+void closeDiskFile() {
+    saveMetadata();
+    if (disk_fd >= 0) {
+        close(disk_fd);
+        disk_fd = -1;
+    }
+}
+
 
 void mapPage(const std::string& table_name, int logical_page_number, int physical_page_id) {
     std::lock_guard<std::mutex> lock(page_directory_mutex);
@@ -120,7 +229,6 @@ BufferPoolManager::~BufferPoolManager() {
         flushPage(page->page_id);
         delete page;
     }
-    closeDiskFile();
 }
 
 Page* BufferPoolManager::fetchPage(int page_id) {
@@ -222,49 +330,3 @@ void BufferPoolManager::shutdown() {
     flushAllPages();
     closeDiskFile();
 }
-
-// // Test main function
-// int main() {
-//     BufferPoolManager bpm(3); // Buffer pool with 3 frames
-//     std::string table_name = "test_table";
-
-//     // Allocate and write to 3 pages
-//     for (int logical_page_number = 0; logical_page_number < 3; ++logical_page_number) {
-//         allocatePage(table_name, logical_page_number);
-//         Page* page = bpm.fetchPage(table_name, logical_page_number);
-//         if (!page) {
-//             std::cerr << "Failed to fetch page " << logical_page_number << "\n";
-//             return 1;
-//         }
-//         std::string content = "Hello Page " + std::to_string(logical_page_number);
-//         strncpy(page->data, content.c_str(), PAGE_SIZE - 1);
-//         page->data[PAGE_SIZE - 1] = '\0'; // Ensure null-termination
-//         bpm.unpinPage(page->page_id, true);
-//     }
-
-//     // Allocate a 4th page, which should evict an unpinned page
-//     int logical_page_number = 3;
-//     allocatePage(table_name, logical_page_number);
-//     Page* evicted_page = bpm.fetchPage(table_name, logical_page_number);
-//     if (!evicted_page) {
-//         std::cerr << "Failed to fetch page " << logical_page_number << "\n";
-//         return 1;
-//     }
-//     strncpy(evicted_page->data, "Evicted someone!", PAGE_SIZE - 1);
-//     evicted_page->data[PAGE_SIZE - 1] = '\0';
-//     bpm.unpinPage(evicted_page->page_id, true);
-
-//     // Read back all pages
-//     for (int i = 0; i <= logical_page_number; ++i) {
-//         Page* page = bpm.fetchPage(table_name, i);
-//         if (!page) {
-//             std::cerr << "Failed to fetch page " << i << "\n";
-//             continue;
-//         }
-//         std::cout << "Page " << i << " data: " << page->data << "\n";
-//         bpm.unpinPage(page->page_id, false);
-//     }
-
-//     bpm.shutdown();
-//     return 0;
-// }

@@ -8,7 +8,6 @@ int main() {
 
     TableHeap heap(&bpm, table_name);
 
-    heap.insertRow("row 1 content here!");
     heap.insertRow("row 2 is also here.");
     heap.insertRow("row 3, filling up.");
     heap.insertRow("row 4, maybe new page?");
