@@ -16,7 +16,7 @@
 #include <string>
 
 #include "../Log_manager/log_manager.hpp"
-#include "../constants.hpp"
+#include "../include/shared_structs_constants.hpp"
 
 struct Page {
     int page_id = -1;

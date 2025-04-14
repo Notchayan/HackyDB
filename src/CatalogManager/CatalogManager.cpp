@@ -1,6 +1,6 @@
 #include "CatalogManager.hpp"
 #include <fstream>
-#include "../../Dependencies/json.hpp"
+#include "../include/json.hpp"
 
 using json = nlohmann::json;
 

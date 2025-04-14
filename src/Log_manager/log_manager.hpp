@@ -3,7 +3,7 @@
 #include <iostream>
 #include <fcntl.h>
 #include <unistd.h>
-#include "../constants.hpp"
+#include "../include/shared_structs_constants.hpp"
 
 class LogManager {
     std::ofstream log_file;

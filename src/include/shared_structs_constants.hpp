@@ -1,0 +1,8 @@
+#pragma once
+
+#define PAGE_SIZE 4096
+
+#define METADATA_PAGE_ID 0
+#define METADATA_PAGE_START 1
+#define METADATA_PAGE_END 100
+#define FIRST_DATA_PAGE_ID 101
