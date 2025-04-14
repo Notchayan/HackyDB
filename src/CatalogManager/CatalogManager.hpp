@@ -44,7 +44,6 @@ public:
     std::optional<TableMetadata> getTableMetadata(const std::string& name);
     std::vector<ColumnMetadata> getColumnMetadata(const std::string& table_name);
     std::optional<IndexMetadata> getIndexMetadata(const std::string& name);
-
     std::unordered_map<std::string, TableMetadata> getAllTables() const;
 
 private:
