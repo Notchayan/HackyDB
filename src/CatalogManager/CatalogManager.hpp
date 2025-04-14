@@ -4,6 +4,7 @@
 #include <vector>
 #include <unordered_map>
 #include <optional>
+#include "../RecordManager/RecordManager.hpp"
 
 struct TableMetadata {
     std::string table_name;
@@ -41,10 +42,17 @@ public:
     bool addColumnMetadata(const ColumnMetadata& column);
     bool addIndexMetadata(const IndexMetadata& index);
 
+    bool addSchema(const std::string &table_name, const db::Schema &schema);
+
     std::optional<TableMetadata> getTableMetadata(const std::string& name);
     std::vector<ColumnMetadata> getColumnMetadata(const std::string& table_name);
     std::optional<IndexMetadata> getIndexMetadata(const std::string& name);
     std::unordered_map<std::string, TableMetadata> getAllTables() const;
+
+    std::optional<db::Schema> getSchema(const std::string &table_name) const;
+
+    db::Schema constructSchemaFromColumns(const std::string &table_name);
+
 
     static int next_table_id;
     static int next_column_id;
@@ -56,13 +64,17 @@ private:
 
     void loadTables();
     void loadColumns();
+    void loadSchemas();
     void loadIndexes();
 
     void savenextids();
 
+    void saveSchemas();
     void saveTables();
     void saveColumns();
     void saveIndexes();
+
+    std::unordered_map<std::string, db::Schema> schema_map;
 
     std::unordered_map<std::string, TableMetadata> table_map;
     std::unordered_map<std::string, std::vector<ColumnMetadata>> column_map;

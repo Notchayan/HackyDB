@@ -88,6 +88,8 @@ int main() {
 
     createTableIfNotExists(catalog, table_name, num_columns);
 
+    catalog.addSchema(table_name, student_schema);
+    
     TableHeap heap(&bpm, table_name);
 
     std::vector<std::string> sample_rows = {

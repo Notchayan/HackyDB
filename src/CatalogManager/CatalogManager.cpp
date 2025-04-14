@@ -17,6 +17,7 @@ void CatalogManager::loadCatalog() {
     loadTables();
     loadColumns();
     loadIndexes();
+    loadSchemas();
 }
 
 void CatalogManager::saveCatalog() {
@@ -24,6 +25,7 @@ void CatalogManager::saveCatalog() {
     saveTables();
     saveColumns();
     saveIndexes();
+    saveSchemas();
 }
 
 void CatalogManager::loadnextids() {
@@ -81,6 +83,73 @@ std::optional<IndexMetadata> CatalogManager::getIndexMetadata(const std::string&
     if (!index_map.count(name)) return std::nullopt;
     return index_map[name];
 }
+
+bool CatalogManager::addSchema(const std::string &table_name, const db::Schema &schema) {
+    schema_map[table_name] = schema;
+    return true;
+}
+
+std::optional<db::Schema> CatalogManager::getSchema(const std::string &table_name) const {
+    auto it = schema_map.find(table_name);
+    if (it != schema_map.end()) {
+        return it->second;
+    }
+    return std::nullopt;
+}
+
+db::Schema CatalogManager::constructSchemaFromColumns(const std::string &table_name) {
+    auto col_meta = getColumnMetadata(table_name);
+    std::vector<db::Column> cols;
+
+    for (const auto &meta : col_meta) {
+        db::TypeID type;
+        if (meta.data_type == "INTEGER") type = db::TypeID::INTEGER;
+        else if (meta.data_type == "BOOLEAN") type = db::TypeID::BOOLEAN;
+        else if (meta.data_type == "FLOAT") type = db::TypeID::FLOAT;
+        else if (meta.data_type == "VARCHAR") type = db::TypeID::VARCHAR;
+        else type = db::TypeID::INVALID;
+
+        cols.emplace_back(meta.column_name, type, meta.data_type == "VARCHAR" ? 255 : 0, meta.is_nullable);
+    }
+
+    return db::Schema(cols);
+}
+
+
+void CatalogManager::saveSchemas() {
+    std::ofstream out("schemas.meta");
+    for (const auto &[table_name, schema] : schema_map) {
+        out << table_name << " " << schema.GetColumnCount() << "\n";
+        for (uint32_t i = 0; i < schema.GetColumnCount(); ++i) {
+            const auto &col = schema.GetColumn(i);
+            out << col.GetName() << " "
+                << static_cast<int>(col.GetType()) << " "
+                << col.GetLength() << " "
+                << col.IsNullable() << "\n";
+        }
+    }
+}
+
+void CatalogManager::loadSchemas() {
+    std::ifstream in("schemas.meta");
+    std::string table_name;
+    uint32_t column_count;
+
+    while (in >> table_name >> column_count) {
+        std::vector<db::Column> cols;
+        for (uint32_t i = 0; i < column_count; ++i) {
+            std::string name;
+            int type;
+            uint32_t length;
+            bool nullable;
+            in >> name >> type >> length >> nullable;
+            cols.emplace_back(name, static_cast<db::TypeID>(type), length, nullable);
+        }
+        db::Schema schema(cols);
+        schema_map[table_name] = schema;
+    }
+}
+
 
 // ------------------ LOAD -------------------
 
