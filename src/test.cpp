@@ -90,23 +90,56 @@ int main() {
 
     catalog.addSchema(table_name, student_schema);
     
-    TableHeap heap(&bpm, table_name);
+    
+    // TableHeap heap(&bpm, table_name);
 
-    std::vector<std::string> sample_rows = {
-        "Col1_data1!@#$Col2_data1!@#$Col3_data1",
-        "Col1_data2!@#$Col2_data2!@#$Col3_data2",
-        "Col1_data3!@#$Col2_data3!@#$Col3_data3",
-        "Col1_data4!@#$Col2_data4!@#$Col3_data4"
+    // std::vector<std::string> sample_rows = {
+    //     "Col1_data1!@#$Col2_data1!@#$Col3_data1",
+    //     "Col1_data2!@#$Col2_data2!@#$Col3_data2",
+    //     "Col1_data3!@#$Col2_data3!@#$Col3_data3",
+    //     "Col1_data4!@#$Col2_data4!@#$Col3_data4"
+    // };
+
+    // for (const auto& row : sample_rows) {
+    //     bool success = heap.insertRow(row);
+    //     if (!success) {
+    //         std::cerr << "⚠️ Failed to insert row: " << row << "\n";
+    //     }
+    // }
+    
+    // schema for teachers
+    db::Column id_col_t("id", db::TypeID::INTEGER, 0, false);
+    db::Column name_col_t("name", db::TypeID::VARCHAR, 50, false);
+    db::Column subject_col("subject", db::TypeID::VARCHAR, 50, false);
+    db::Column salary_col("salary", db::TypeID::FLOAT, 0, true);
+
+    std::vector<db::Column> columns_t = {id_col_t, name_col_t, subject_col, salary_col};
+    db::Schema teacher_schema(columns_t);
+    std::cout << "Column count: " << teacher_schema.GetColumnCount() << std::endl;
+    std::cout << "Schema length: " << teacher_schema.GetLength() << " bytes" << std::endl;
+    int32_t subject_idx = teacher_schema.GetColumnIndex("subject");
+    if (subject_idx != -1) {
+        std::cout << "Subject column is at index: " << subject_idx << std::endl;
+    }
+    // Create a new table for teachers
+    const std::string teacher_table_name = "Teacher";
+    createTableIfNotExists(catalog, teacher_table_name, columns_t.size());
+    catalog.addSchema(teacher_table_name, teacher_schema);
+    TableHeap heap_t(&bpm, teacher_table_name);
+    std::vector<std::string> sample_rows_t = {
+        "Col1_data1!@#$Col2_data1!@#$Col3_data1!@#$Col4_data1",
+        "Col1_data2!@#$Col2_data2!@#$Col3_data2!@#$Col4_data2",
+        "Col1_data3!@#$Col2_data3!@#$Col3_data3!@#$Col4_data3",
+        "Col1_data4!@#$Col2_data4!@#$Col3_data4!@#$Col4_data4"
     };
-
-    for (const auto& row : sample_rows) {
-        bool success = heap.insertRow(row);
+    for (const auto& row : sample_rows_t) {
+        bool success = heap_t.insertRow(row);
         if (!success) {
             std::cerr << "⚠️ Failed to insert row: " << row << "\n";
         }
     }
-    
-    printTable(heap);
+
+    printTable(heap_t);
     bpm.shutdown();
     std::cout << "\n✅ BufferPoolManager shutdown completed.\n";
 

@@ -1,6 +1,7 @@
 #include "CatalogManager.hpp"
 #include <fstream>
 #include "../include/json.hpp"
+#include <iostream>
 
 using json = nlohmann::json;
 
@@ -26,6 +27,11 @@ void CatalogManager::saveCatalog() {
     saveColumns();
     saveIndexes();
     saveSchemas();
+
+}
+
+CatalogManager::~CatalogManager() {
+    saveCatalog();
 }
 
 void CatalogManager::loadnextids() {
@@ -86,6 +92,7 @@ std::optional<IndexMetadata> CatalogManager::getIndexMetadata(const std::string&
 
 bool CatalogManager::addSchema(const std::string &table_name, const db::Schema &schema) {
     schema_map[table_name] = schema;
+    std::cout << "addSchema called for table: " << table_name << "\n";
     return true;
 }
 
@@ -128,6 +135,7 @@ void CatalogManager::saveSchemas() {
                 << col.IsNullable() << "\n";
         }
     }
+    std::cout << "saveSchemas called\n";
 }
 
 void CatalogManager::loadSchemas() {

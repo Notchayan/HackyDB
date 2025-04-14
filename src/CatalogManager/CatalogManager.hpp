@@ -35,6 +35,8 @@ class CatalogManager {
 public:
     CatalogManager();
 
+    ~CatalogManager();
+
     void loadCatalog();
     void saveCatalog();
 
