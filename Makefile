@@ -6,7 +6,8 @@ SRC = \
 	src/BufferPoolManager/BufferPoolManager.cpp \
 	src/TableHeap/TableHeap.cpp \
 	src/CatalogManager/CatalogManager.cpp \
-	src/main.cpp
+	src/RecordManager/RecordManager.cpp \
+	src/test.cpp
 
 OBJ = $(SRC:src/%.cpp=build/%.o)
 

@@ -1,6 +1,7 @@
 #include "TableHeap/TableHeap.hpp"
 #include "BufferPoolManager/BufferPoolManager.hpp"
 #include "CatalogManager/CatalogManager.hpp"
+#include "RecordManager/RecordManager.hpp"
 
 #include <iostream>
 #include <sstream>

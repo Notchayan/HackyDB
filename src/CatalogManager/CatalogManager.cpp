@@ -4,20 +4,50 @@
 
 using json = nlohmann::json;
 
+int CatalogManager::next_table_id = 0;
+int CatalogManager::next_column_id = 0;
+int CatalogManager::next_index_id = 0;
+
 CatalogManager::CatalogManager() {
     loadCatalog();
 }
 
 void CatalogManager::loadCatalog() {
+    loadnextids();
     loadTables();
     loadColumns();
     loadIndexes();
 }
 
 void CatalogManager::saveCatalog() {
+    savenextids();
     saveTables();
     saveColumns();
     saveIndexes();
+}
+
+void CatalogManager::loadnextids() {
+    std::ifstream in("catalog_ids.meta");
+    if (!in.is_open()) {
+        next_table_id = 0;
+        next_column_id = 0;
+        next_index_id = 0;
+        return;
+    }
+    json j;
+    in >> j;
+    next_table_id = j.value("next_table_id", 0);
+    next_column_id = j.value("next_column_id", 0);
+    next_index_id = j.value("next_index_id", 0);
+}
+
+void CatalogManager::savenextids() {
+    std::ofstream out("catalog_ids.meta");
+    json j;
+    j["next_table_id"] = next_table_id;
+    j["next_column_id"] = next_column_id;
+    j["next_index_id"] = next_index_id;
+    out << j.dump(4);
 }
 
 bool CatalogManager::addTableMetadata(const TableMetadata& table) {

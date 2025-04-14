@@ -46,10 +46,19 @@ public:
     std::optional<IndexMetadata> getIndexMetadata(const std::string& name);
     std::unordered_map<std::string, TableMetadata> getAllTables() const;
 
+    static int next_table_id;
+    static int next_column_id;
+    static int next_index_id;
+
 private:
+
+    void loadnextids();
+
     void loadTables();
     void loadColumns();
     void loadIndexes();
+
+    void savenextids();
 
     void saveTables();
     void saveColumns();
