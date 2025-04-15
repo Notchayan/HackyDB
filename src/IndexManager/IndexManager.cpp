@@ -140,3 +140,36 @@ void BPlusTree::InitTree() {
     }
   }
   
+
+
+FindNodeParam BPlusTree::Search(int node, TKey &key) {
+    FindNodeParam ret;
+    int index = 0;
+    BPlusTreeNode *pnode = GetNode(node);
+    if (pnode->Search(key, index)) {
+      if (pnode->GetIsLeaf()) {
+        ret.flag = true;
+        ret.index = index;
+        ret.pnode = pnode;
+      } else {
+        pnode = GetNode(pnode->GetValues(index));
+        while (!pnode->GetIsLeaf()) {
+          pnode = GetNode(pnode->GetValues(pnode->GetCount()));
+        }
+        ret.flag = true;
+        ret.index = pnode->GetCount() - 1;
+        ret.pnode = pnode;
+      }
+    } else {
+      if (pnode->GetIsLeaf()) {
+        ret.flag = false;
+        ret.index = index;
+        ret.pnode = pnode;
+      } else {
+        return Search(pnode->GetValues(index), key);
+      }
+    }
+  
+    return ret;
+  }
+  
