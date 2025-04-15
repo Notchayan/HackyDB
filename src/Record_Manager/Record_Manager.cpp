@@ -381,3 +381,112 @@ void RecordManager::Delete(SQLDelete &st) {
     hdl_->WriteToDisk();
   }
   
+
+
+void RecordManager::Update(SQLUpdate &st) {
+    Table *tbl = cm_->GetDB(db_name_)->GetTable(st.tb_name());
+  
+    vector<int> indices;
+    vector<TKey> values;
+    int pk_index = -1;
+    int affect_index = -1;
+  
+    for (int i = 0; i < tbl->ats().size(); ++i) {
+      if (tbl->ats()[i].attr_type() == 1) {
+        pk_index = i;
+      }
+    }
+  
+    for (int i = 0; i < st.keyvalues().size(); ++i) {
+      int index = tbl->GetAttributeIndex(st.keyvalues()[i].key);
+      indices.push_back(index);
+      TKey value(tbl->ats()[index].data_type(), tbl->ats()[index].length());
+      value.ReadValue(st.keyvalues()[i].value);
+      values.push_back(value);
+  
+      if (index == pk_index) {
+        affect_index = i;
+      }
+    }
+  
+    if (affect_index != -1) {
+      if (tbl->GetIndexNum() != 0) {
+  
+        BPlusTree tree(tbl->GetIndex(0), hdl_, cm_, db_name_);
+  
+        int value = tree.GetVal(values[affect_index]);
+        if (value != -1) {
+          throw PrimaryKeyConflictException();
+        }
+      } else {
+        int block_num = tbl->first_block_num();
+        for (int i = 0; i < tbl->block_count(); ++i) {
+          BlockInfo *bp = GetBlockInfo(tbl, block_num);
+  
+          for (int j = 0; j < bp->GetRecordCount(); ++j) {
+            vector<TKey> tkey_value = GetRecord(tbl, block_num, j);
+  
+            if (tkey_value[pk_index] == values[affect_index]) {
+              throw PrimaryKeyConflictException();
+            }
+          }
+  
+          block_num = bp->GetNextBlockNum();
+        }
+      }
+    }
+  
+    int block_num = tbl->first_block_num();
+    for (int i = 0; i < tbl->block_count(); ++i) {
+      BlockInfo *bp = GetBlockInfo(tbl, block_num);
+  
+      for (int j = 0; j < bp->GetRecordCount(); ++j) {
+        vector<TKey> tkey_value = GetRecord(tbl, block_num, j);
+  
+        bool sats = true;
+  
+        for (int k = 0; k < st.wheres().size(); ++k) {
+          SQLWhere where = st.wheres()[k];
+          if (!SatisfyWhere(tbl, tkey_value, where)) {
+            sats = false;
+          }
+        }
+        if (sats) {
+          if (tbl->GetIndexNum() != 0) {
+            BPlusTree tree(tbl->GetIndex(0), hdl_, cm_, db_name_);
+  
+            int idx = -1;
+            for (int i = 0; i < tbl->GetAttributeNum(); ++i) {
+              if (tbl->ats()[i].attr_name() == tbl->GetIndex(0)->attr_name()) {
+                idx = i;
+              }
+            }
+  
+            tree.Remove(tkey_value[idx]);
+          }
+  
+          UpdateRecord(tbl, block_num, j, indices, values);
+  
+          tkey_value = GetRecord(tbl, block_num, j);
+  
+          if (tbl->GetIndexNum() != 0) {
+            BPlusTree tree(tbl->GetIndex(0), hdl_, cm_, db_name_);
+  
+            int idx = -1;
+            for (int i = 0; i < tbl->GetAttributeNum(); ++i) {
+              if (tbl->ats()[i].attr_name() == tbl->GetIndex(0)->attr_name()) {
+                idx = i;
+              }
+            }
+  
+            tree.Add(tkey_value[idx], block_num, j);
+          }
+        }
+      }
+  
+      block_num = bp->GetNextBlockNum();
+    }
+  
+    hdl_->WriteToDisk();
+  }
+  
