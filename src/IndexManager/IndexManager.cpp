@@ -66,4 +66,77 @@ void IndexManager::CreateIndex(SQLCreateIndex &st) {
     tree.Print();
   }
 
+
+void BPlusTree::InitTree() {
+    BPlusTreeNode *root_node =
+        new BPlusTreeNode(true, this, GetNewBlockNum(), true);
+    idx_->set_root(0);
+    idx_->set_leaf_head(idx_->root());
+    idx_->set_key_count(0);
+    idx_->set_node_count(1);
+    idx_->set_level(1);
+    root_node->SetNextLeaf(-1);
+  }
+  
+  bool BPlusTree::Add(TKey &key, int block_num, int offset) {
+    int value = (block_num << 16) | offset;
+  
+    if (idx_->root() == -1) {
+      InitTree();
+    }
+  
+    FindNodeParam fnp = Search(idx_->root(), key);
+  
+    if (!fnp.flag) {
+      fnp.pnode->Add(key, value);
+      idx_->IncreaseKeyCount();
+  
+      if (fnp.pnode->GetCount() == degree_) {
+        return AdjustAfterAdd(fnp.pnode->block_num());
+      }
+  
+      return true;
+    }
+  
+    return false;
+  }
+
+  bool BPlusTree::AdjustAfterAdd(int node) {
+    BPlusTreeNode *pnode = GetNode(node);
+    TKey key(idx()->key_type(), idx()->key_len());
+    BPlusTreeNode *newnode = pnode->Split(key);
+    idx_->IncreaseNodeCount();
+    int parent = pnode->GetParent();
+  
+    if (parent == -1) {
+      BPlusTreeNode *newroot = new BPlusTreeNode(true, this, GetNewBlockNum());
+      if (newroot == NULL)
+        return false;
+  
+      idx_->IncreaseNodeCount();
+      idx_->set_root(newroot->block_num());
+  
+      newroot->Add(key);
+  
+      newroot->SetValues(0, pnode->block_num());
+      newroot->SetValues(1, newnode->block_num());
+  
+      pnode->SetParent(idx_->root());
+      newnode->SetParent(idx_->root());
+      newnode->SetNextLeaf(-1);
+      idx_->IncreaseLevel();
+      return true;
+    } else {
+      BPlusTreeNode *parentnode = GetNode(parent);
+      int index = parentnode->Add(key);
+  
+      parentnode->SetValues(index, pnode->block_num());
+      parentnode->SetValues(index + 1, newnode->block_num());
+  
+      if (parentnode->GetCount() == degree_) {
+        return AdjustAfterAdd(parentnode->block_num());
+      }
+      return true;
+    }
+  }
   
