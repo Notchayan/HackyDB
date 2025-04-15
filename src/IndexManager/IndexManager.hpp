@@ -12,6 +12,22 @@ class BPlusTreeNode;
 class BPlusTree;
 
 
+class IndexManager {
+    private:
+      BufferManager *hdl_;
+      CatalogManager *cm_;
+      std::string db_name_;
+    
+    public:
+      IndexManager(CatalogManager *cm, BufferManager *hdl, std::string db) {
+        hdl_ = hdl;
+        cm_ = cm;
+        db_name_ = db;
+      }
+      ~IndexManager() {}
+      void CreateIndex(SQLCreateIndex &st);
+    };
+    
 typedef struct {
     BPlusTreeNode *pnode;
     int index;
