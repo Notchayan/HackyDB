@@ -492,25 +492,23 @@ void RecordManager::Update(SQLUpdate &st) {
   
 
 
-  std::vector<TKey> RecordManager::GetRecord(Table *tbl, int block_num,
-    int offset) {
-vector<TKey> keys;
-BlockInfo *bp = GetBlockInfo(tbl, block_num);
+std::vector<TKey> RecordManager::GetRecord(Table *tbl, int block_num, int offset) {
+    vector<TKey> keys;
+    BlockInfo *bp = GetBlockInfo(tbl, block_num);
 
-char *content = bp->data() + offset * tbl->record_length() + 12;
+    char *content = bp->data() + offset * tbl->record_length() + 12;
 
-for (int i = 0; i < tbl->GetAttributeNum(); ++i) {
-int value_type = tbl->ats()[i].data_type();
-int length = tbl->ats()[i].length();
+    for (int i = 0; i < tbl->GetAttributeNum(); ++i) {
+        int value_type = tbl->ats()[i].data_type();
+        int length = tbl->ats()[i].length();
 
-TKey tmp(value_type, length);
+        TKey tmp(value_type, length);
 
-memcpy(tmp.key(), content, length);
+        memcpy(tmp.key(), content, length);
 
-keys.push_back(tmp);
+        keys.push_back(tmp);
 
-content += length;
-}
-
-return keys;
+        content += length;
+    }
+    return keys;
 }
