@@ -572,3 +572,39 @@ void RecordManager::DeleteRecord(Table *tbl, int block_num, int offset) {
         hdl_->WriteBlock(bp);
 }
 
+
+bool RecordManager::SatisfyWhere(Table *tbl, std::vector<TKey> keys, SQLWhere where) {
+    int idx = -1;
+    for (int i = 0; i < tbl->GetAttributeNum(); ++i) {
+        if (tbl->ats()[i].attr_name() == where.key) {
+            idx = i;
+        }
+    }
+    // cout << idx;
+
+    TKey tmp(tbl->ats()[idx].data_type(), tbl->ats()[idx].length());
+    tmp.ReadValue(where.value.c_str());
+    switch (where.sign_type) {
+        case SIGN_EQ:
+        return keys[idx] == tmp;
+        break;
+        case SIGN_NE:
+        return keys[idx] != tmp;
+        break;
+        case SIGN_LT:
+        return keys[idx] < tmp;
+        break;
+        case SIGN_GT:
+        return keys[idx] > tmp;
+        break;
+        case SIGN_LE:
+        return keys[idx] <= tmp;
+        break;
+        case SIGN_GE:
+        return keys[idx] >= tmp;
+        break;
+        default:
+        return false;
+        break;
+    }
+}

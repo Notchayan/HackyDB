@@ -31,6 +31,8 @@ class  RecordManager {
     BlockInfo *GetBlockInfo(Table *tbl, int block_num); 
     
     std::vector<TKey> GetRecord(Table *tbl, int block_num, int offset);
+    bool SatisfyWhere(Table *tbl, std::vector<TKey> keys, SQLWhere where);
+};
 };
 
 #endif
