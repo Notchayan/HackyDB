@@ -185,4 +185,102 @@ void RecordManager::Insert(SQLInsert &st) {
     cm_->WriteArchiveFile();
     hdl_->WriteToDisk();
   }
+
+
+  void RecordManager::Select(SQLSelect &st) {
+
+    Table *tbl = cm_->GetDB(db_name_)->GetTable(st.tb_name());
+  
+    for (int i = 0; i < tbl->GetAttributeNum(); ++i) {
+      cout << setw(9) << left << tbl->ats()[i].attr_name();
+    }
+    cout << endl;
+  
+    vector<vector<TKey>> tkey_values;
+  
+    bool has_index = false;
+    int index_idx;
+    int where_idx;
+  
+    if (tbl->GetIndexNum() != 0) {
+      for (int i = 0; i < tbl->GetIndexNum(); ++i) {
+        Index *idx = tbl->GetIndex(i);
+        for (int j = 0; j < st.wheres().size(); ++j) {
+          if (idx->attr_name() == st.wheres()[j].key) {
+            if (st.wheres()[j].sign_type == SIGN_EQ) {
+              has_index = true;
+              index_idx = i;
+              where_idx = j;
+            }
+          }
+        }
+      }
+    }
+  
+    if (!has_index) {
+      int block_num = tbl->first_block_num();
+      for (int i = 0; i < tbl->block_count(); ++i) {
+        BlockInfo *bp = GetBlockInfo(tbl, block_num);
+  
+        for (int j = 0; j < bp->GetRecordCount(); ++j) {
+          vector<TKey> tkey_value = GetRecord(tbl, block_num, j);
+  
+          bool sats = true;
+  
+          for (int k = 0; k < st.wheres().size(); ++k) {
+            SQLWhere where = st.wheres()[k];
+            if (!SatisfyWhere(tbl, tkey_value, where)) {
+              sats = false;
+            }
+          }
+          if (sats) {
+            tkey_values.push_back(tkey_value);
+          }
+        }
+  
+        block_num = bp->GetNextBlockNum();
+      }
+    } else { // if has index
+      BPlusTree tree(tbl->GetIndex(index_idx), hdl_, cm_, db_name_);
+  
+      // build TKey for search
+      int type = tbl->GetIndex(index_idx)->key_type();
+      int length = tbl->GetIndex(index_idx)->key_len();
+      std::string value = st.wheres()[where_idx].value;
+      TKey dest_key(type, length);
+      dest_key.ReadValue(value);
+  
+      int blocknum = tree.GetVal(dest_key);
+  
+      if (blocknum != -1) {
+        int blockoffset = blocknum;
+        blocknum = blocknum >> 16;
+        blocknum = blocknum & 0xffff;
+        blockoffset = blockoffset & 0xffff;
+        vector<TKey> tkey_value = GetRecord(tbl, blocknum, blockoffset);
+        bool sats = true;
+  
+        for (int k = 0; k < st.wheres().size(); ++k) {
+          SQLWhere where = st.wheres()[k];
+          if (!SatisfyWhere(tbl, tkey_value, where)) {
+            sats = false;
+          }
+        }
+        if (sats) {
+          tkey_values.push_back(tkey_value);
+        }
+      }
+    }
+  
+    for (int i = 0; i < tkey_values.size(); ++i) {
+      for (int j = 0; j < tkey_values[i].size(); ++j) {
+        cout << tkey_values[i][j];
+      }
+      cout << endl;
+    }
+    if (tbl->GetIndexNum() != 0) {
+      BPlusTree tree(tbl->GetIndex(0), hdl_, cm_, db_name_);
+      tree.Print();
+    }
+  }
   
