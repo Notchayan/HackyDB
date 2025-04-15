@@ -554,3 +554,21 @@ void RecordManager::DeleteRecord(Table *tbl, int block_num, int offset) {
     hdl_->WriteBlock(bp);
   }
   
+  void RecordManager::UpdateRecord(Table *tbl, int block_num, int offset, std::vector<int> &indices,std::vector<TKey> &values) {
+        BlockInfo *bp = GetBlockInfo(tbl, block_num);
+
+        char *content = bp->data() + offset * tbl->record_length() + 12;
+
+        for (int i = 0; i < tbl->GetAttributeNum(); ++i) {
+        vector<int>::iterator iter = find(indices.begin(), indices.end(), i);
+        if (iter != indices.end()) {
+        memcpy(content, values[iter - indices.begin()].key(),
+        values[iter - indices.begin()].length());
+        }
+
+        content += tbl->ats()[i].length();
+        }
+
+        hdl_->WriteBlock(bp);
+}
+
