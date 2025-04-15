@@ -512,3 +512,45 @@ std::vector<TKey> RecordManager::GetRecord(Table *tbl, int block_num, int offset
     }
     return keys;
 }
+
+
+void RecordManager::DeleteRecord(Table *tbl, int block_num, int offset) {
+    BlockInfo *bp = GetBlockInfo(tbl, block_num);
+  
+    char *content = bp->data() + offset * tbl->record_length() + 12;
+    char *replace =
+        bp->data() + (bp->GetRecordCount() - 1) * tbl->record_length() + 12;
+    memcpy(content, replace, tbl->record_length());
+  
+    bp->DecreaseRecordCount();
+  
+    if (bp->GetRecordCount() == 0) { // add the block to rubbish block chain
+  
+      int prevnum = bp->GetPrevBlockNum();
+      int nextnum = bp->GetNextBlockNum();
+  
+      if (prevnum != -1) {
+        BlockInfo *pbp = GetBlockInfo(tbl, prevnum);
+        pbp->SetNextBlockNum(nextnum);
+        hdl_->WriteBlock(pbp);
+      }
+  
+      if (nextnum != -1) {
+        BlockInfo *nbp = GetBlockInfo(tbl, nextnum);
+        nbp->SetPrevBlockNum(prevnum);
+        hdl_->WriteBlock(nbp);
+      }
+  
+      BlockInfo *firstrubbish = GetBlockInfo(tbl, tbl->first_rubbish_num());
+      bp->SetNextBlockNum(-1);
+      bp->SetPrevBlockNum(-1);
+      if (firstrubbish != NULL) {
+        firstrubbish->SetPrevBlockNum(block_num);
+        bp->SetNextBlockNum(firstrubbish->block_num());
+      }
+      tbl->set_first_rubbish_num(block_num);
+    }
+  
+    hdl_->WriteBlock(bp);
+  }
+  
