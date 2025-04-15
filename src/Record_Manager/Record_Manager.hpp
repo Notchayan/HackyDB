@@ -20,6 +20,12 @@ class  RecordManager {
 
     RecordManager(CatalogManager *cm, BufferManager *hdl, std::string db) : cm_(cm), hdl_(hdl), db_name_(db) {}
     ~RecordManager() {}
+
+    // Defining CRUD operations
+    void Insert(SQLInsert &st);
+    void Select(SQLSelect &st);
+    void Delete(SQLDelete &st);
+    void Update(SQLUpdate &st);
 };
 
 #endif
