@@ -173,3 +173,29 @@ FindNodeParam BPlusTree::Search(int node, TKey &key) {
     return ret;
   }
   
+
+
+  FindNodeParam BPlusTree::SearchBranch(int node, TKey &key) {
+    FindNodeParam ret;
+    int index = 0;
+    BPlusTreeNode *pnode = GetNode(node);
+  
+    if (pnode->GetIsLeaf()) {
+      throw BPlusTreeException();
+    }
+    if (pnode->Search(key, index)) {
+      ret.flag = true;
+      ret.index = index;
+      ret.pnode = pnode;
+    } else {
+      if (!GetNode(pnode->GetValues(index))->GetIsLeaf()) {
+        ret = SearchBranch(pnode->GetValues(index), key);
+      } else {
+        ret.index = index;
+        ret.flag = false;
+        ret.pnode = pnode;
+      }
+    }
+    return ret;
+  }
+  
