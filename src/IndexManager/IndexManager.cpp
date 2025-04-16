@@ -444,4 +444,29 @@ BPlusTreeNode::BPlusTreeNode(bool isnew, BPlusTree *tree, int blocknum, bool new
 
 bool BPlusTreeNode::GetIsLeaf() { return GetNodeType() == 1; }
 
+
+
+TKey BPlusTreeNode::GetKeys(int index) {
+    TKey k(tree_->idx()->key_type(), tree_->idx()->key_len());
+    int base = 12;
+    int lenr = 4 + tree_->idx()->key_len();
+    memcpy(k.key(), &buffer_[base + index * lenr + 4], tree_->idx()->key_len());
+    return k;
+  }
+  
+  int BPlusTreeNode::GetValues(int index) {
+    int val;
+    int base = 12;
+    int lenR = 4 + tree_->idx()->key_len();
+    val = *((int *)(&buffer_[base + index * lenR]));
+    return val;
+  }
+  
+  int BPlusTreeNode::GetNextLeaf() {
+    int val;
+    int base = 12;
+    int lenR = 4 + tree_->idx()->key_len();
+    val = *((int *)(&buffer_[base + tree_->degree() * lenR]));
+    return val;
+  }
   
