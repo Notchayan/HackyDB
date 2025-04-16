@@ -199,3 +199,32 @@ FindNodeParam BPlusTree::Search(int node, TKey &key) {
     return ret;
   }
   
+
+  BPlusTreeNode *BPlusTree::GetNode(int num) {
+    BPlusTreeNode *pnode = new BPlusTreeNode(false, this, num);
+    return pnode;
+  }
+
+
+void BPlusTree::Print() {
+    printf("*****************************************************\n");
+    printf("KeyCount: %d, NodeCount: %d, Level: %d, Root: %d \n",
+           idx_->key_count(), idx_->node_count(), idx_->level(), idx_->root());
+  
+    if (idx_->root() != -1) {
+      PrintNode(idx_->root());
+    }
+  }
+  
+  void BPlusTree::PrintNode(int num) {
+    BPlusTreeNode *pnode = GetNode(num);
+  
+    pnode->Print();
+    if (!pnode->GetIsLeaf()) {
+  
+      for (int i = 0; i <= pnode->GetCount(); i++) {
+        PrintNode(pnode->GetValues(i));
+      }
+    }
+  }
+  
