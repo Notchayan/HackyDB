@@ -228,3 +228,12 @@ void BPlusTree::Print() {
     }
   }
   
+int BPlusTree::GetVal(TKey key) {
+    int ret = -1;
+    FindNodeParam fnp = Search(idx_->root(), key);
+    if (fnp.flag) {
+      ret = fnp.pnode->GetValues(fnp.index);
+    }
+    return ret;
+  }
+  
