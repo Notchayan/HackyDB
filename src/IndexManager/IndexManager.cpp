@@ -237,3 +237,193 @@ int BPlusTree::GetVal(TKey key) {
     return ret;
   }
   
+
+
+bool BPlusTree::AdjustAfterRemove(int node) {
+    BPlusTreeNode *pnode = GetNode(node);
+    if (pnode->GetCount() >= idx_->rank()) {
+      return true;
+    }
+  
+    if (pnode->IsRoot()) {
+      if (pnode->GetCount() == 0) {
+        if (!pnode->GetIsLeaf()) {
+          idx_->set_root(pnode->GetValues(0));
+          GetNode(pnode->GetValues(0))->SetParent(-1);
+        } else {
+          idx_->set_root(-1);
+          idx_->set_leaf_head(-1);
+        }
+        delete pnode;
+        idx_->DecreaseNodeCount();
+        idx_->DecreaseLevel();
+      }
+      return true;
+    }
+  
+    BPlusTreeNode *pbrother;
+    BPlusTreeNode *pparent;
+    int pos;
+  
+    pparent = GetNode(pnode->GetParent());
+    pparent->Search(pnode->GetKeys(0), pos);
+  
+    if (pos == pparent->GetCount()) {
+      pbrother = GetNode(pparent->GetValues(pos - 1));
+  
+      if (pbrother->GetCount() > idx_->rank()) {
+  
+        if (pnode->GetIsLeaf()) {
+  
+          for (int i = pnode->GetCount(); i > 0; i--) {
+            pnode->SetKeys(i, pnode->GetKeys(i - 1));
+            pnode->SetValues(i, pnode->GetValues(i - 1));
+          }
+  
+          pnode->SetKeys(0, pbrother->GetKeys(pbrother->GetCount() - 1));
+          pnode->SetValues(0, pbrother->GetValues(pbrother->GetCount() - 1));
+  
+          pnode->SetCount(pnode->GetCount() + 1);
+  
+          pbrother->SetCount(pbrother->GetCount() - 1);
+  
+          pparent->SetKeys(pos - 1, pbrother->GetKeys(pbrother->GetCount() - 1));
+  
+          return true;
+        } else {
+  
+          for (int i = pnode->GetCount(); i > 0; i--) {
+            pnode->SetKeys(i, pnode->GetKeys(i - 1));
+          }
+          for (int i = pnode->GetCount() + 1; i > 0; i--) {
+            pnode->SetValues(i, pnode->GetValues(i - 1));
+          }
+  
+          pnode->SetKeys(0, pparent->GetKeys(pos - 1));
+          pparent->SetKeys(pos - 1, pbrother->GetKeys(pbrother->GetCount() - 1));
+  
+          pnode->SetValues(0, pbrother->GetValues(pbrother->GetCount()));
+          pnode->SetCount(pnode->GetCount() + 1);
+  
+          if (pbrother->GetValues(pbrother->GetCount()) >= 0) {
+  
+            GetNode(pbrother->GetValues(pbrother->GetCount()))
+                ->SetParent(pnode->block_num());
+            pbrother->SetValues(pbrother->GetCount(), -1);
+          }
+          pbrother->SetCount(pbrother->GetCount() - 1);
+          return true;
+        }
+      } else {
+  
+        if (pnode->GetIsLeaf()) {
+          pparent->RemoveAt(pos - 1);
+          pparent->SetValues(pos - 1, pbrother->block_num());
+  
+          for (int i = 0; i < pnode->GetCount(); i++) {
+            pbrother->SetKeys(pbrother->GetCount() + i, pnode->GetKeys(i));
+            pbrother->SetValues(pbrother->GetCount() + i, pnode->GetValues(i));
+            pnode->SetValues(i, -1);
+          }
+  
+          pbrother->SetCount(pbrother->GetCount() + pnode->GetCount());
+          pbrother->SetNextLeaf(pnode->GetNextLeaf());
+          delete pnode;
+          idx_->DecreaseNodeCount();
+  
+          return AdjustAfterRemove(pparent->block_num());
+        } else {
+          pbrother->SetKeys(pbrother->GetCount(), pparent->GetKeys(pos - 1));
+          pbrother->SetCount(pbrother->GetCount() + 1);
+          pparent->RemoveAt(pos - 1);
+          pparent->SetValues(pos - 1, pbrother->block_num());
+          for (int i = 0; i < pnode->GetCount(); i++) {
+            pbrother->SetKeys(pbrother->GetCount() + i, pnode->GetKeys(i));
+          }
+  
+          for (int i = 0; i <= pnode->GetCount(); i++) {
+            pbrother->SetValues(pbrother->GetCount() + i, pnode->GetValues(i));
+            GetNode(pnode->GetValues(i))->SetParent(pbrother->block_num());
+          }
+  
+          pbrother->SetCount(2 * idx_->rank());
+  
+          delete pnode;
+          idx_->DecreaseNodeCount();
+  
+          return AdjustAfterRemove(pparent->block_num());
+        }
+      }
+  
+    } else {
+      pbrother = GetNode(pparent->GetValues(pos + 1));
+  
+      if (pbrother->GetCount() > idx_->rank()) {
+  
+        if (pnode->GetIsLeaf()) {
+          pparent->SetKeys(pos, pbrother->GetKeys(0));
+          pnode->SetKeys(pnode->GetCount(), pbrother->GetKeys(0));
+          pnode->SetValues(pnode->GetCount(), pbrother->GetValues(0));
+          pbrother->SetValues(0, -1);
+          pnode->SetCount(pnode->GetCount() + 1);
+  
+          pbrother->RemoveAt(0);
+  
+          return true;
+        } else {
+  
+          pnode->SetKeys(pnode->GetCount(), pparent->GetKeys(pos));
+          pnode->SetValues(pnode->GetCount() + 1, pbrother->GetValues(0));
+          pnode->SetCount(pnode->GetCount() + 1);
+          pparent->SetKeys(pos, pbrother->GetKeys(0));
+          GetNode(pbrother->GetValues(0))->SetParent(pnode->block_num());
+  
+          pbrother->RemoveAt(0);
+          return true;
+        }
+      } else {
+  
+        if (pnode->GetIsLeaf()) {
+  
+          for (int i = 0; i < idx_->rank(); i++) {
+  
+            pnode->SetKeys(pnode->GetCount() + i, pbrother->GetKeys(i));
+            pnode->SetValues(pnode->GetCount() + i, pbrother->GetValues(i));
+            pbrother->SetValues(i, -1);
+          }
+  
+          pnode->SetCount(pnode->GetCount() + idx_->rank());
+          delete pbrother;
+          idx_->DecreaseNodeCount();
+  
+          pparent->RemoveAt(pos);
+          pparent->SetValues(pos, pnode->block_num());
+          return AdjustAfterRemove(pparent->block_num());
+        } else {
+  
+          pnode->SetKeys(pnode->GetCount(), pparent->GetKeys(pos));
+  
+          pparent->RemoveAt(pos);
+  
+          pparent->SetValues(pos, pnode->block_num());
+  
+          pnode->SetCount(pnode->GetCount() + 1);
+          for (int i = 0; i < idx_->rank(); i++) {
+            pnode->SetKeys(pnode->GetCount() + i, pbrother->GetKeys(i));
+          }
+  
+          for (int i = 0; i <= idx_->rank(); i++) {
+            pnode->SetValues(pnode->GetCount() + i, pbrother->GetValues(i));
+            GetNode(pbrother->GetValues(i))->SetParent(pnode->block_num());
+          }
+  
+          pnode->SetCount(pnode->GetCount() + idx_->rank());
+          delete pbrother;
+          idx_->DecreaseNodeCount();
+  
+          return AdjustAfterRemove(pparent->block_num());
+        }
+      }
+    }
+  }
+  
