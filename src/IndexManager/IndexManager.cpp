@@ -470,3 +470,19 @@ TKey BPlusTreeNode::GetKeys(int index) {
     return val;
   }
   
+
+
+int BPlusTreeNode::GetParent() {
+    int val;
+    val = *((int *)(&buffer_[8]));
+    return val;
+  }
+  
+  int BPlusTreeNode::GetNodeType() {
+    int val;
+    val = *((int *)(&buffer_[0]));
+    return val;
+  }
+  
+  int BPlusTreeNode::GetCount() { return *((int *)(&buffer_[4])); }
+  
