@@ -426,4 +426,22 @@ bool BPlusTree::AdjustAfterRemove(int node) {
       }
     }
   }
+
+
+//=======================BPlusTreeNode=======================//
+
+BPlusTreeNode::BPlusTreeNode(bool isnew, BPlusTree *tree, int blocknum, bool newleaf): tree_(tree) {
+    is_leaf_ = newleaf;
+    rank_ = (tree_->degree() - 1) / 2;
+    block_num_ = blocknum;
+    GetBuffer();
+    if (isnew) {
+        SetParent(-1);
+        SetNodeType(newleaf ? 1 : 0);
+        SetCount(0);
+    }
+}
+
+bool BPlusTreeNode::GetIsLeaf() { return GetNodeType() == 1; }
+
   
