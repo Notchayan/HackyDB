@@ -1,5 +1,3 @@
-#ifndef MINIDB_SQL_STATEMENT_H_
-#define MINIDB_SQL_STATEMENT_H_
 
 #include <string>
 #include <vector>
@@ -384,4 +382,3 @@ public:
 }
 };
 
-#endif

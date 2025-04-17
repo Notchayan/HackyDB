@@ -4,11 +4,11 @@
 #include <string>
 #include <vector>
 
-#include "BlockInfo/BlockInfo.hpp"
-#include "BufferManager/BufferManager.hpp"
-#include "CatalogManager/CatalogManager.hpp"
-#include "Exceptions/Exceptions.hpp"
-#include "SQLStatement/SQLStatement.hpp"
+#include "../BlockInfo/BlockInfo.hpp"
+#include "../BufferManager/BufferManager.hpp"
+#include "../CatalogManager/CatalogManager.hpp"
+#include "../Exceptions/Exceptions.hpp"
+#include "../SQLStatement/SQLStatement.hpp"
 
 class  RecordManager {
     private:
