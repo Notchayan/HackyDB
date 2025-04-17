@@ -1,5 +1,6 @@
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -arch arm64
+CXXFLAGS = -std=c++17 -Wall -Wextra -arch arm64 -I/opt/homebrew/include
+LDFLAGS = -L/opt/homebrew/lib -lboost_filesystem -lboost_regex
 TARGET = BufferPoolManagerTest
 
 SRC = \
@@ -14,11 +15,11 @@ OBJ = $(SRC:src/%.cpp=build/%.o)
 all: $(TARGET)
 
 $(TARGET): $(OBJ)
-	$(CXX) $(CXXFLAGS) $(OBJ) -o $(TARGET)
+	$(CXX) $(CXXFLAGS) $(OBJ) -o $(TARGET) $(LDFLAGS)
 
 build/%.o: src/%.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) -c $< -o $@   
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 run: $(TARGET)
 	chmod +x ./$(TARGET)
