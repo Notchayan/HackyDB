@@ -486,3 +486,22 @@ int BPlusTreeNode::GetParent() {
   
   int BPlusTreeNode::GetCount() { return *((int *)(&buffer_[4])); }
   
+
+void BPlusTreeNode::SetKeys(int index, TKey key) {
+    int base = 12;
+    int lenr = 4 + tree_->idx()->key_len();
+    memcpy(&buffer_[base + index * lenr + 4], key.key(), tree_->idx()->key_len());
+  }
+  
+  void BPlusTreeNode::SetValues(int index, int val) {
+    int base = 12;
+    int lenr = 4 + tree_->idx()->key_len();
+    *((int *)(&buffer_[base + index * lenr])) = val;
+  }
+  
+  void BPlusTreeNode::SetNextLeaf(int val) {
+    int base = 12;
+    int len = 4 + tree_->idx()->key_len();
+    *((int *)(&buffer_[base + tree_->degree() * len])) = val;
+  }
+  
