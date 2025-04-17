@@ -505,3 +505,246 @@ void BPlusTreeNode::SetKeys(int index, TKey key) {
     *((int *)(&buffer_[base + tree_->degree() * len])) = val;
   }
   
+
+void BPlusTreeNode::SetParent(int val) { *((int *)(&buffer_[8])) = val; }
+
+void BPlusTreeNode::SetNodeType(int val) { *((int *)(&buffer_[0])) = val; }
+
+void BPlusTreeNode::SetCount(int val) { *((int *)(&buffer_[4])) = val; }
+
+void BPlusTreeNode::SetIsLeaf(bool val) { SetNodeType(val ? 1 : 0); }
+
+void BPlusTreeNode::GetBuffer() {
+  BlockInfo *block = tree_->hdl()->GetFileBlock(
+      tree_->db_name(), tree_->idx()->name(), FORMAT_INDEX, block_num_);
+  buffer_ = block->data();
+  block->set_dirty(true);
+}
+
+bool BPlusTreeNode::Search(TKey key, int &index) {
+  bool ret = false;
+
+  if (GetCount() == 0) {
+    index = 0;
+    return false;
+  }
+
+  if (GetKeys(0) > key) {
+    index = 0;
+    return false;
+  }
+
+  if (GetKeys(GetCount() - 1) < key) {
+    index = GetCount();
+    return false;
+  }
+
+  if (GetCount() > 20) { // do binary search
+    int m, s, e;
+    s = 0;
+    e = GetCount() - 1;
+    while (s < e) {
+      m = (s + e) / 2;
+
+      if (key == GetKeys(m)) {
+        index = m;
+        return true;
+      } else if (key < GetKeys(m)) {
+        e = m;
+      } else {
+        s = m;
+      }
+
+      if (s == e - 1) {
+        if (key == GetKeys(s)) {
+          index = s;
+          return true;
+        }
+
+        if (key == GetKeys(e)) {
+          index = e;
+          return true;
+        }
+
+        if (key < GetKeys(s)) {
+          index = s;
+          return false;
+        }
+
+        if (key < GetKeys(e)) {
+          index = e;
+          return false;
+        }
+
+        if (key > GetKeys(e)) {
+          index = e + 1;
+          return false;
+        }
+      }
+    }
+    return false;
+  } else { // do sequential search
+    for (int i = 0; i < GetCount(); i++) {
+      if (key < GetKeys(i)) {
+        index = i;
+        ret = false;
+        break;
+      } else if (key == GetKeys(i)) {
+        index = i;
+        ret = true;
+        break;
+      }
+    }
+    return ret;
+  }
+}
+
+int BPlusTreeNode::Add(TKey &key) {
+  int index = 0;
+  if (GetCount() == 0) {
+    SetKeys(0, key);
+    SetCount(1);
+    return 0;
+  }
+
+  if (!Search(key, index)) {
+
+    for (int i = GetCount(); i > index; i--) {
+      SetKeys(i, GetKeys(i - 1));
+    }
+
+    for (int i = GetCount() + 1; i > index; i--) {
+      SetValues(i, GetValues(i - 1));
+    }
+
+    SetKeys(index, key);
+    SetValues(index, -1);
+    SetCount(GetCount() + 1);
+  }
+  return index;
+}
+
+int BPlusTreeNode::Add(TKey &key, int &val) {
+  int index = 0;
+  if (GetCount() == 0) {
+    SetKeys(0, key);
+    SetValues(0, val);
+    SetCount(GetCount() + 1);
+    return 0;
+  }
+
+  if (!Search(key, index)) {
+
+    for (int i = GetCount(); i > index; i--) {
+      SetKeys(i, GetKeys(i - 1));
+      SetValues(i, GetValues(i - 1));
+    }
+
+    SetKeys(index, key);
+    SetValues(index, val);
+    SetCount(GetCount() + 1);
+  }
+  return index;
+}
+
+BPlusTreeNode *BPlusTreeNode::Split(TKey &key) {
+  BPlusTreeNode *newnode =
+      new BPlusTreeNode(true, tree_, tree_->GetNewBlockNum(), GetIsLeaf());
+  if (newnode == NULL) {
+    throw BPlusTreeException();
+    return NULL;
+  }
+
+  key = GetKeys(rank_);
+
+  if (GetIsLeaf()) {
+    for (int i = rank_ + 1; i < tree_->degree(); i++) {
+      newnode->SetKeys(i - rank_ - 1, GetKeys(i));
+      newnode->SetValues(i - rank_ - 1, GetValues(i));
+    }
+
+    newnode->SetCount(rank_);
+    SetCount(rank_ + 1);
+    newnode->SetNextLeaf(GetNextLeaf());
+    SetNextLeaf(newnode->block_num());
+    newnode->SetParent(GetParent());
+
+  } else {
+    for (int i = rank_ + 1; i < tree_->degree(); i++) {
+      newnode->SetKeys(i - rank_ - 1, GetKeys(i));
+    }
+    for (int i = rank_ + 1; i <= tree_->degree(); i++) {
+      newnode->SetValues(i - rank_ - 1, GetValues(i));
+    }
+    newnode->SetParent(GetParent());
+    newnode->SetCount(rank_);
+
+    int childnode_num;
+    for (int i = 0; i <= newnode->GetCount(); i++) {
+      childnode_num = newnode->GetValues(i);
+      BPlusTreeNode *node = tree_->GetNode(childnode_num);
+      if (node) {
+        node->SetParent(newnode->block_num());
+      }
+    }
+
+    SetCount(rank_);
+  }
+
+  return newnode;
+}
+
+bool BPlusTreeNode::RemoveAt(int index) {
+  if (index > GetCount() - 1) {
+    return false;
+  }
+
+  if (GetIsLeaf()) {
+
+    for (int i = index; i < GetCount() - 1; i++) {
+      SetKeys(i, GetKeys(i + 1));
+      SetValues(i, GetValues(i + 1));
+    }
+  } else {
+    for (int i = index; i < GetCount() - 1; i++) {
+      SetKeys(i, GetKeys(i + 1));
+    }
+
+    for (int i = index; i < GetCount(); i++) {
+      SetValues(i, GetValues(i + 1));
+    }
+  }
+  SetCount(GetCount() - 1);
+  return true;
+}
+
+void BPlusTreeNode::Print() {
+  printf("----------------------\n");
+  printf("BlockNum: %d Count: %d, Parent: %d  IsLeaf:%d\n", block_num_,
+         GetCount(), GetParent(), GetIsLeaf());
+  printf("Keys: { ");
+  for (int i = 0; i < GetCount(); i++) {
+    cout << GetKeys(i);
+  }
+  printf(" }\n");
+
+  if (GetIsLeaf()) {
+    printf("Vals: { ");
+    for (int i = 0; i < GetCount(); i++) {
+      if (GetValues(i) == -1) {
+        printf("{NUL}");
+      } else {
+        printf("%07d ", GetValues(i));
+      }
+    }
+    printf(" }\n");
+
+    printf("NextLeaf: %5d\n", GetNextLeaf());
+  } else {
+    printf("Ptrs: {");
+    for (int i = 0; i <= GetCount(); i++) {
+      printf("%07d ", GetValues(i));
+    }
+    printf("}\n");
+  }
+}
