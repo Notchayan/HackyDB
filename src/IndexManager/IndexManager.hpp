@@ -4,9 +4,9 @@
 
 #include <string>
 
-#include "BufferManager/BufferManager.hpp"
-#include "CatalogManager/CatalogManager.hpp"
-#include "SQLStatement/SQLStatement.hpp"
+#include "../BufferManager/BufferManager.hpp"
+#include "../CatalogManager/CatalogManager.hpp"
+#include "../SQLStatement/SQLStatement.hpp"
 
 class BPlusTreeNode;
 class BPlusTree;
