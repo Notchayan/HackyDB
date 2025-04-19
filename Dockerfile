@@ -32,7 +32,3 @@ ENV LC_ALL=en_US.UTF-8
 WORKDIR /app
 
 COPY . .
-
-RUN make clean && make
-
-CMD ["./bin/HackyDb"]

@@ -35,14 +35,22 @@ This will:
 - Install necessary development tools and libraries.
 - Build the HackyDB binary using `make`.
 
-### 3. Run the Container
+### 3. Access the container 
 To run the project in an interactive container:
 ```bash
-docker run -it --rm hackydb
+docker run -it hackydb /bin/bash
 ```
-This will:
-- Start a temporary container.
-- Run the HackyDB executable located at `./bin/HackyDb`.
+
+### 4. Build the HackyDB
+```bash
+make
+```
+
+### 5. Run the HackyDB
+```bash
+./bin/HackyDb
+```
+
 
 ## Acknowledgments
 We extend our gratitude to **Prof. Arnab Bhattacharya** for his invaluable guidance and for providing us with the opportunity to deepen our understanding of database systems.
