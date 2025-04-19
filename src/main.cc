@@ -13,6 +13,28 @@
 
 using namespace std;
 
+void PrintHelp() {
+    std::cout << "Supported SQL Queries:\n";
+    std::cout << "-----------------------\n";
+    std::cout << "1. SELECT * FROM table_name [WHERE column = value [AND ...]]\n";
+    std::cout << "2. INSERT INTO table_name VALUES (value1, value2, ...)\n";
+    std::cout << "3. DELETE FROM table_name [WHERE column = value [AND ...]]\n";
+    std::cout << "4. CREATE DATABASE database_name\n";
+    std::cout << "5. DROP DATABASE database_name\n";
+    std::cout << "6. USE database_name\n";
+    std::cout << "7. CREATE TABLE table_name (column_name TYPE, ..., PRIMARY KEY(column_name))\n";
+    std::cout << "8. DROP TABLE table_name\n";
+    std::cout << "9. CREATE INDEX index_name ON table_name(column_name)\n";
+    std::cout << "10. DROP INDEX index_name\n";
+    std::cout << "11. EXEC file_name\n";
+    std::cout << "\nNote:\n";
+    std::cout << "- Types: INT, FLOAT, CHAR(n)\n";
+    std::cout << "- CHAR values must be enclosed in single ('') or double quotes (\"\")\n";
+    std::cout << "- WHERE conditions support: =, <, >, <=, >=, <>\n";
+    std::cout << std::endl;
+  }
+
+  
 // Prints a beautiful welcome message about HackyDB
 void printWelcomeMessage() {
     // Clear the console (cross-platform approach)
@@ -112,7 +134,9 @@ int main(int argc, const char *argv[]) {
 
     using_history();              
 
-    printWelcomeMessage();         
+    printWelcomeMessage();   
+    
+    PrintHelp();
 
     while (true) {
         userInput = readline("HackyDB> ");
