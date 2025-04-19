@@ -52,7 +52,7 @@ make
 ```
 
 ## Testing
-To test HackyDB, follow the instructions outlined in the [./test.md](./test.md) file.
+To test HackyDB, follow the instructions outlined in the [Link](./Test.md) file.
 
 ## Acknowledgments
 We extend our gratitude to **Prof. Arnab Bhattacharya** for his invaluable guidance and for providing us with the opportunity to deepen our understanding of database systems.
