@@ -51,9 +51,8 @@ make
 ./bin/HackyDb
 ```
 
+## Testing
+To test HackyDB, follow the instructions outlined in the [./test.md](./test.md) file.
 
 ## Acknowledgments
 We extend our gratitude to **Prof. Arnab Bhattacharya** for his invaluable guidance and for providing us with the opportunity to deepen our understanding of database systems.
-
----
-For any queries or discussions, feel free to reach out!
