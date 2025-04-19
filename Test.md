@@ -380,5 +380,121 @@ Vals: { 0000000 0000001 0000003 0000002 0000007 0000005 0000007 0000008  }
 NextLeaf:    -1
 
 
+
+HackyDB> Quit;
+SQL TYPE: #QUIT#
+SQL STATEMENT: Quit
+Quiting...
+root@99a7a91b30a1:/app# ./bin/HackyDb
+
+               ██╗  ██╗ █████╗  ██████╗██╗   ██╗██╗   ██╗
+               ██║  ██║██╔══██╗██╔════╝██║  ██║ ╚██╗ ██╔╝
+               ███████║███████║██║     ████║     ╚████╔╝
+               ██╔══██║██╔══██║██║     ██╔═ ██║   ╚██╔╝
+               ██║  ██║██║  ██║╚██████╗██║   ██║   ██║
+               ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝   ╚═╝   ╚═╝
+
+═══════════════════════════════════════════════════════════════════════════════
+               Welcome to HackyDB - Your Very Own Database System!
+═══════════════════════════════════════════════════════════════════════════════
+
+         HackyDB is a powerful, complete database system built in C++.
+    With support for all core database operations including system calls,
+     indexing, file handling, and record management, you're ready to go!
+    HackyDB integrates OS-level data management to bring you a truly robust
+    solution for managing data efficiently. Start exploring and building!
+
+═══════════════════════════════════════════════════════════════════════════════
+         Ready to manage data with full control? Let's dive into HackyDB!
+═══════════════════════════════════════════════════════════════════════════════
+🔹 Project: HackyDB
+🔹 Course: CS315 - DATABASE SYSTEMS (6th Semester)
+🔹 Institute: Indian Institute of Technology Kanpur
+🔹 Instructor: Prof. Arnab Bhattacharya
+
+🧩 Modules: Interpreter | API | Record Manager | Index Manager | Catalog Manager | Buffer Manager (LRU Cache with 4KB Blocks)
+
+👨‍💻 Crafted With Passion By Team HACKY:
+   ⚡ Harshit            ⚡ Aditya Gupta
+   ⚡ Chayan Kumawat     ⚡ Kushagra Singh
+   ⚡ Yash Pratap Singh
+
+💡 Tips:
+   • End SQL statements with ';'
+   • Type 'help' to see available commands
+   • Type 'exit' or 'quit' to close HackyDB
+═══════════════════════════════════════════════════════════════════════════════
+
+[HackyDB] Ready to execute your SQL commands. Type 'help' for assistance.
+
+Supported SQL Queries:
+-----------------------
+1. SELECT * FROM table_name [WHERE column = value [AND ...]]
+2. INSERT INTO table_name VALUES (value1, value2, ...)
+3. DELETE FROM table_name [WHERE column = value [AND ...]]
+4. CREATE DATABASE database_name
+5. DROP DATABASE database_name
+6. USE database_name
+7. CREATE TABLE table_name (column_name TYPE, ..., PRIMARY KEY(column_name))
+8. DROP TABLE table_name
+9. CREATE INDEX index_name ON table_name(column_name)
+10. DROP INDEX index_name
+11. EXEC file_name
+
+Note:
+- Types: INT, FLOAT, CHAR(n)
+- CHAR values must be enclosed in single ('') or double quotes ("")
+- WHERE conditions support: =, <, >, <=, >=, <>
+
+HackyDB> SHOW DATABASES;
+SQL TYPE: #SHOW DATABASES#
+SQL STATEMENT: SHOW DATABASES
+DATABASE LIST:
+	DB1
+	DB2
+
+
+HackyDB> USE DB2;
+SQL TYPE: #USE#
+SQL STATEMENT: USE DB2
+DB NAME: DB2
+
+
+HackyDB> SHOW TABLES;
+SQL TYPE: #SHOW TABLES#
+SQL STATEMENT: SHOW TABLES
+CURRENT DATABASE: DB2
+TABLE LIST:
+	students
+
+
+HackyDB> SELECT * FROM students;
+SQL TYPE: #SELECT#
+SQL STATEMENT: SELECT * FROM students
+Syntax Error!
+
+
+HackyDB> select * from students;
+SQL TYPE: #SELECT#
+SQL STATEMENT: select * from students
+TABLE NAME: students
+student_idname     departmentcgpa
+101      Alice    CSE      9.1
+102      Bob      EE       8.7
+105      Eve      EE       9.2
+104      David    CSE      8.8
+109      Ivan     ME       8.2
+107      Grace    CSE      9.3
+110      Judy     CSE      9.7
+106      Frank    ME       8
+*****************************************************
+KeyCount: 8, NodeCount: 1, Level: 1, Root: 0
+----------------------
+BlockNum: 0 Count: 8, Parent: -1  IsLeaf:1
+Keys: { 101      102      104      105      106      107      109      110       }
+Vals: { 0000000 0000001 0000003 0000002 0000007 0000005 0000007 0000008  }
+NextLeaf:    -1
+
+
 HackyDB>
 ```
