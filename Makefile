@@ -1,31 +1,35 @@
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -arch arm64 -I/opt/homebrew/include
-LDFLAGS = -L/opt/homebrew/lib -lboost_filesystem -lboost_regex
-TARGET = BufferPoolManagerTest
+CXXFLAGS = -std=c++17 -Wall -Wextra -Wno-unused-parameter -Wno-reorder -Wno-sign-compare
+LDFLAGS = -lboost_system -lboost_serialization -lboost_filesystem -lboost_regex -lreadline
 
-SRC = \
-	src/BufferPoolManager/BufferPoolManager.cpp \
-	src/TableHeap/TableHeap.cpp \
-	src/CatalogManager/CatalogManager.cpp \
-	src/RecordManager/RecordManager.cpp \
-	src/test.cpp
+SRC_DIR = src
+OBJ_DIR = obj
+BIN_DIR = bin
 
-OBJ = $(SRC:src/%.cpp=build/%.o)
+# Find all .cc files recursively under src/
+SRCS = $(shell find $(SRC_DIR) -name '*.cc')
 
-all: $(TARGET)
+# Map src/foo/bar.cc -> obj/foo/bar.o
+OBJS = $(patsubst $(SRC_DIR)/%.cc, $(OBJ_DIR)/%.o, $(SRCS))
 
-$(TARGET): $(OBJ)
-	$(CXX) $(CXXFLAGS) $(OBJ) -o $(TARGET) $(LDFLAGS)
+TARGET = $(BIN_DIR)/HackyDb
 
-build/%.o: src/%.cpp
+all: directories $(TARGET)
+
+directories:
+	@mkdir -p $(BIN_DIR)
+	@mkdir -p $(sort $(dir $(OBJS)))
+
+# Link all object files into binary
+$(TARGET): $(OBJS)
+	$(CXX) $(OBJS) -o $(TARGET) $(LDFLAGS)
+
+# Compile each .cc to .o
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cc
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-run: $(TARGET)
-	chmod +x ./$(TARGET)
-	./$(TARGET)
-
 clean:
-	rm -rf build $(TARGET)
+	rm -rf $(OBJ_DIR) $(BIN_DIR)
 
-.PHONY: all clean run
+.PHONY: all clean directories

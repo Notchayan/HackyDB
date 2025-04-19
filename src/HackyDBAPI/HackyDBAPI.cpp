@@ -6,7 +6,7 @@
 #include <boost/filesystem.hpp>
 
 #include "../CatalogManager/CatalogManager.hpp"
-#include "../Exceptions/Exceptions.h"
+#include "../Exception/Exception.hpp"
 #include "../IndexManager/IndexManager.hpp"
 #include "../RecordManager/RecordManager.hpp"
 

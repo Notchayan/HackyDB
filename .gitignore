@@ -42,3 +42,31 @@ BufferPoolManagerTest
 dbfile
 
 *.meta
+
+build/
+bin/
+*.o
+*.meta
+*.db
+*.log
+
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+/Debug
+/build
+
+# Mac files
+.DS_Store
+/Debug

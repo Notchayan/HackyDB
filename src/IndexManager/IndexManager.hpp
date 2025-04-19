@@ -6,7 +6,7 @@
 
 #include "../BufferManager/BufferManager.hpp"
 #include "../CatalogManager/CatalogManager.hpp"
-#include "../SQLStatement/SQLStatement.hpp"
+#include "../SQL_Statements/sql_statement.hpp"
 
 class BPlusTreeNode;
 class BPlusTree;
