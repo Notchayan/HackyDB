@@ -17,9 +17,35 @@ HackyDB was built collaboratively by a team of five dedicated students:
 - Focused on optimizing performance and ensuring data integrity.
 - Explored cutting-edge database techniques and best practices.
 
+## 🐳 Running with Docker
+
+### 1. Clone the Repository
+```bash
+git clone git@github.com:Notchayan/HackyDB.git
+cd HackyDB
+```
+
+### 2. Build the Docker Image
+Make sure Docker is installed on your system. Then run:
+```bash
+docker build -t hackydb .
+```
+This will:
+- Use Ubuntu 22.04 as the base image.
+- Install necessary development tools and libraries.
+- Build the HackyDB binary using `make`.
+
+### 3. Run the Container
+To run the project in an interactive container:
+```bash
+docker run -it --rm hackydb
+```
+This will:
+- Start a temporary container.
+- Run the HackyDB executable located at `./bin/HackyDb`.
+
 ## Acknowledgments
 We extend our gratitude to **Prof. Arnab Bhattacharya** for his invaluable guidance and for providing us with the opportunity to deepen our understanding of database systems.
 
 ---
 For any queries or discussions, feel free to reach out!
-
