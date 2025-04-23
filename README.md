@@ -21,8 +21,9 @@ HackyDB was built collaboratively by a team of five dedicated students:
 
 ### 1. Clone the Repository
 ```bash
-git clone git@github.com:Notchayan/HackyDB.git
-cd HackyDB
+https://home.iitk.ac.in/~chayank22/HackyDB.zip
+download the zip file from the above code
+then UnZip it
 ```
 
 ### 2. Build the Docker Image
