@@ -140,30 +140,43 @@ int main(int argc, const char *argv[]) {
 
     while (true) {
         userInput = readline("HackyDB> ");
-
+    
         sqlStatement = string(userInput);
         free(userInput);
-
+    
         boost::algorithm::trim(sqlStatement);
-
+    
         if (sqlStatement.compare(0, 4, "exit") == 0 || sqlStatement.compare(0, 4, "quit") == 0) {
             interpreter.ExecSQL("quit");
             break;
         }
-
+    
         while ((semicolonPosition = sqlStatement.find(";")) == string::npos) {
             userInput = readline(""); 
             sqlStatement += "\n" + string(userInput);
             free(userInput);
         }
-
+    
         if (!sqlStatement.empty()) {
             add_history(sqlStatement.c_str());
         }
-
+    
+        // Start timing
+        auto start = chrono::high_resolution_clock::now();
+    
         interpreter.ExecSQL(sqlStatement);
+    
+        // End timing
+        auto end = chrono::high_resolution_clock::now();
+        chrono::duration<double, milli> duration = end - start;
+    
+        cout << fixed;
+        cout.precision(2);
+        cout << "[⏱️] Query executed in " << duration.count() << " ms" << endl;
+    
         cout << endl;
     }
+    
 
     return 0;
 }
